@@ -1,0 +1,329 @@
+#!/usr/bin/env node
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { homedir, platform } from 'os'
+import { fileURLToPath, pathToFileURL } from 'url'
+import { execSync } from 'child_process'
+import { LOGO_LINES } from '../src/components/logoArt.js'
+
+process.env.CLAUDE_CODE_USE_OPENAI = '1'
+delete process.env.ANTHROPIC_API_KEY
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const distPath = join(__dirname, '..', 'dist', 'cli.mjs')
+const MCP_SERVER_PATH = join(__dirname, '..', 'mcp', 'twin-memory.py')
+
+const TWIN_DIR = join(homedir(), '.twin')
+const SETTINGS_PATH = join(TWIN_DIR, 'settings.json')
+const TWIN_JSON_PATH = join(homedir(), '.twin.json')
+const MCP_VENV_PATH = join(TWIN_DIR, 'mcp-venv')
+
+const ESC = '\x1b['
+const RESET = `${ESC}0m`
+const DIM = `${ESC}2m`
+const BOLD = `${ESC}1m`
+const rgb = (r, g, b) => `${ESC}38;2;${r};${g};${b}m`
+const ACCENT = rgb(100, 180, 255)
+const GREEN = rgb(100, 200, 120)
+const PURPLE = rgb(180, 120, 255)
+const YELLOW = rgb(255, 200, 80)
+const GRAY = rgb(100, 110, 120)
+const RED = rgb(255, 100, 100)
+const DIM_GRAY = `${ESC}2m`
+
+// Read a line in raw mode — masked (shows *) or plain (shows chars)
+function readLine(masked = false) {
+  return new Promise(resolve => {
+    let value = ''
+    process.stdin.setRawMode(true)
+    process.stdin.resume()
+    process.stdin.setEncoding('utf8')
+
+    const onData = chunk => {
+      for (const char of chunk) {
+        if (char === '\x03') {
+          process.stdout.write('\n')
+          process.exit(0)
+        }
+        if (char === '\r' || char === '\n') {
+          process.stdin.removeListener('data', onData)
+          process.stdin.setRawMode(false)
+          process.stdin.pause()
+          process.stdout.write('\n')
+          resolve(value)
+          return
+        }
+        if (char === '\x7f' || char === '\b') {
+          if (value.length > 0) {
+            value = value.slice(0, -1)
+            process.stdout.write('\b \b')
+          }
+          continue
+        }
+        if (char >= ' ') {
+          value += char
+          process.stdout.write(masked ? '*' : char)
+        }
+      }
+    }
+
+    process.stdin.on('data', onData)
+  })
+}
+
+// Read a single keypress
+function readKey() {
+  return new Promise(resolve => {
+    process.stdin.setRawMode(true)
+    process.stdin.resume()
+    process.stdin.setEncoding('utf8')
+    const onData = chunk => {
+      process.stdin.removeListener('data', onData)
+      process.stdin.setRawMode(false)
+      process.stdin.pause()
+      resolve(chunk[0])
+    }
+    process.stdin.on('data', onData)
+  })
+}
+
+// Detect Obsidian vaults from Obsidian's own config
+function detectObsidianVaults() {
+  const plat = platform()
+  let obsidianConfigPath
+
+  if (plat === 'linux') {
+    // Try native install first, then Flatpak
+    const native = join(homedir(), '.config', 'obsidian', 'obsidian.json')
+    const flatpak = join(homedir(), '.var', 'app', 'md.obsidian.Obsidian', 'config', 'obsidian', 'obsidian.json')
+    obsidianConfigPath = existsSync(native) ? native : flatpak
+  } else if (plat === 'darwin') {
+    obsidianConfigPath = join(homedir(), 'Library', 'Application Support', 'obsidian', 'obsidian.json')
+  } else if (plat === 'win32') {
+    obsidianConfigPath = join(process.env.APPDATA || '', 'obsidian', 'obsidian.json')
+  }
+
+  if (!obsidianConfigPath || !existsSync(obsidianConfigPath)) return []
+
+  try {
+    const config = JSON.parse(readFileSync(obsidianConfigPath, 'utf8'))
+    const vaults = config.vaults || {}
+    return Object.values(vaults)
+      .filter(v => v.path && existsSync(v.path))
+      .map(v => v.path)
+  } catch {
+    return []
+  }
+}
+
+// Set up Python venv and install MCP deps
+function setupMcpVenv() {
+  try {
+    execSync(`python3 -m venv "${MCP_VENV_PATH}"`, { stdio: 'pipe' })
+    execSync(`"${MCP_VENV_PATH}/bin/pip" install mcp pyyaml -q`, { stdio: 'pipe' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Register MCP server in ~/.twin.json
+function registerMcpServer(vaultPath) {
+  let config = {}
+  if (existsSync(TWIN_JSON_PATH)) {
+    try { config = JSON.parse(readFileSync(TWIN_JSON_PATH, 'utf8')) } catch {}
+  }
+  if (!config.mcpServers) config.mcpServers = {}
+  config.mcpServers['twin-memory'] = {
+    type: 'stdio',
+    command: `${MCP_VENV_PATH}/bin/python`,
+    args: [MCP_SERVER_PATH],
+    env: { OBSIDIAN_VAULT: vaultPath },
+    alwaysAllow: [
+      'get_project_context', 'session_start', 'session_end', 'update_progress',
+      'set_next_steps', 'set_project_context', 'list_notes', 'read_note',
+      'create_note', 'edit_note', 'append_to_note', 'search_notes',
+      'daily_note', 'list_tags', 'list_folders', 'move_note', 'note_info', 'delete_note',
+    ],
+  }
+  writeFileSync(TWIN_JSON_PATH, JSON.stringify(config, null, 2))
+}
+
+async function runOnboarding() {
+  console.log('')
+  for (const line of LOGO_LINES) console.log(`${ACCENT}${line}${RESET}`)
+  console.log('')
+  console.log(`${DIM}www.twincode.wtf  @neonn0d${RESET}`)
+  console.log('')
+  console.log(`  ${BOLD}Welcome to Twin${RESET} ${DIM}— AI coding agent by ${PURPLE}@neonn0d${RESET}`)
+  console.log(`  ${GRAY}Powered by DeepSeek API${RESET}`)
+  console.log('')
+  console.log(`  ${GRAY}─────────────────────────────────${RESET}`)
+  console.log('')
+
+  // Step 1: API Key
+  console.log(`  ${YELLOW}Step 1/3${RESET} ${BOLD}DeepSeek API Key${RESET}`)
+  console.log(`  ${GRAY}Get yours at: platform.deepseek.com${RESET}`)
+  console.log('')
+
+  let apiKey = ''
+  while (!apiKey.startsWith('sk-')) {
+    process.stdout.write(`  ${ACCENT}›${RESET} Paste your API key: `)
+    apiKey = (await readLine(true)).trim()
+    if (!apiKey.startsWith('sk-')) {
+      console.log(`  ${RED}Invalid key — DeepSeek keys start with sk-${RESET}`)
+    }
+  }
+  console.log(`  ${GREEN}✔ Key saved${RESET}`)
+  console.log('')
+
+  // Step 2: Model
+  console.log(`  ${YELLOW}Step 2/3${RESET} ${BOLD}Choose your model${RESET}`)
+  console.log('')
+  console.log(`  ${ACCENT}1${RESET}  deepseek-v4-pro      ${DIM}Most capable${RESET}   ${GREEN}[recommended]${RESET}`)
+  console.log(`  ${ACCENT}2${RESET}  deepseek-v4-flash    ${DIM}Fast v4${RESET}`)
+  console.log(`  ${ACCENT}3${RESET}  deepseek-chat        ${DIM}Fast & cheap${RESET}`)
+  console.log(`  ${ACCENT}4${RESET}  deepseek-reasoner    ${DIM}Thinks step by step${RESET}`)
+  console.log('')
+
+  const modelMap = { '1': 'deepseek-v4-pro', '2': 'deepseek-v4-flash', '3': 'deepseek-chat', '4': 'deepseek-reasoner' }
+  let model = ''
+  while (!model) {
+    process.stdout.write(`  ${ACCENT}›${RESET} Select model [1-4]: `)
+    const key = (await readLine(false)).trim()
+    if (modelMap[key]) {
+      model = modelMap[key]
+    } else {
+      console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
+    }
+  }
+  console.log(`  ${GREEN}✔ Model set to ${model}${RESET}`)
+  console.log('')
+
+  // Step 3: Obsidian vault
+  console.log(`  ${YELLOW}Step 3/3${RESET} ${BOLD}Obsidian vault${RESET} ${DIM}(project memory)${RESET}`)
+  console.log('')
+
+  const vaults = detectObsidianVaults()
+  let vaultPath = null
+
+  if (vaults.length === 1) {
+    // Single vault — just confirm
+    const short = vaults[0].replace(homedir(), '~')
+    process.stdout.write(`  ${ACCENT}›${RESET} Found vault: ${BOLD}${short}${RESET} — use it? [Y/n]: `)
+    const answer = (await readLine(false)).trim().toLowerCase()
+    if (answer === '' || answer === 'y' || answer === 'yes') {
+      vaultPath = vaults[0]
+    }
+  } else if (vaults.length > 1) {
+    // Multiple vaults — pick one
+    console.log(`  Found ${vaults.length} vaults:`)
+    console.log('')
+    vaults.forEach((v, i) => {
+      const short = v.replace(homedir(), '~')
+      console.log(`  ${ACCENT}${i + 1}${RESET}  ${short}`)
+    })
+    console.log(`  ${ACCENT}s${RESET}  Skip`)
+    console.log('')
+    let picked = null
+    while (picked === null) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Select vault [1-${vaults.length}/s]: `)
+      const key = (await readLine(false)).trim().toLowerCase()
+      if (key === 's' || key === 'skip') {
+        picked = false
+      } else {
+        const idx = parseInt(key) - 1
+        if (idx >= 0 && idx < vaults.length) {
+          vaultPath = vaults[idx]
+          picked = true
+        } else {
+          console.log(`  ${RED}Pick a number or s to skip${RESET}`)
+        }
+      }
+    }
+  } else {
+    // Obsidian not found — ask manually
+    console.log(`  ${DIM_GRAY}Obsidian not found. Enter your vault path or press Enter to skip.${RESET}`)
+    console.log('')
+    process.stdout.write(`  ${ACCENT}›${RESET} Vault path: `)
+    const input = (await readLine(false)).trim()
+    if (input && existsSync(input)) {
+      vaultPath = input
+    } else if (input) {
+      console.log(`  ${RED}Path not found — skipping${RESET}`)
+    }
+  }
+
+  if (vaultPath) {
+    process.stdout.write(`  Setting up memory... `)
+    const ok = setupMcpVenv()
+    if (ok) {
+      registerMcpServer(vaultPath)
+      console.log(`${GREEN}✔${RESET}`)
+      const short = vaultPath.replace(homedir(), '~')
+      console.log(`  ${GREEN}✔ Vault connected: ${short}${RESET}`)
+    } else {
+      console.log(`${RED}✘${RESET}`)
+      console.log(`  ${RED}python3 not found — skipping vault setup${RESET}`)
+      console.log(`  ${DIM}Run: twin mcp add ... manually later${RESET}`)
+    }
+  } else {
+    console.log(`  ${DIM_GRAY}Skipped — you can add a vault later with: twin mcp add${RESET}`)
+  }
+
+  console.log('')
+
+  // Save settings
+  mkdirSync(TWIN_DIR, { recursive: true })
+  writeFileSync(SETTINGS_PATH, JSON.stringify({
+    model,
+    enableAllProjectMcpServers: false,
+    enabledMcpjsonServers: [],
+    enabledPlugins: {},
+    ...(vaultPath ? { obsidianVault: vaultPath } : {}),
+    env: {
+      OPENAI_BASE_URL: 'https://api.deepseek.com/v1',
+      OPENAI_API_KEY: apiKey,
+      OPENAI_MODEL: model,
+    },
+  }, null, 2))
+
+  // Clear screen before handing off
+  process.stdout.write('\x1b[2J\x1b[H')
+}
+
+// Check if onboarding is needed
+let needsOnboarding = true
+if (existsSync(SETTINGS_PATH)) {
+  try {
+    const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
+    if (s?.env?.OPENAI_API_KEY?.startsWith('sk-')) needsOnboarding = false
+  } catch {}
+}
+
+if (needsOnboarding) await runOnboarding()
+
+// Migrate: ensure twin-memory always has alwaysAllow set
+if (existsSync(TWIN_JSON_PATH)) {
+  try {
+    const config = JSON.parse(readFileSync(TWIN_JSON_PATH, 'utf8'))
+    const server = config?.mcpServers?.['twin-memory']
+    if (server && (!server.alwaysAllow || server.alwaysAllow.length === 0)) {
+      server.alwaysAllow = [
+        'get_project_context', 'session_start', 'session_end', 'update_progress',
+        'set_next_steps', 'set_project_context', 'list_notes', 'read_note',
+        'create_note', 'edit_note', 'append_to_note', 'search_notes',
+        'daily_note', 'list_tags', 'list_folders', 'move_note', 'note_info', 'delete_note',
+      ]
+      writeFileSync(TWIN_JSON_PATH, JSON.stringify(config, null, 2))
+    }
+  } catch {}
+}
+
+if (!existsSync(distPath)) {
+  console.error('twin: run "npm run build" first')
+  process.exit(1)
+}
+
+await import(pathToFileURL(distPath).href)

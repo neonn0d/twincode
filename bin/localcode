@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+
+import { existsSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath, pathToFileURL } from 'url'
+
+process.env.CLAUDE_CODE_USE_OPENAI = '1'
+delete process.env.ANTHROPIC_API_KEY
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const distPath = join(__dirname, '..', 'dist', 'cli.mjs')
+
+if (existsSync(distPath)) {
+  await import(pathToFileURL(distPath).href)
+} else {
+  console.error('localcode: run "bun run build" first')
+  process.exit(1)
+}
