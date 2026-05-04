@@ -478,9 +478,9 @@ function TranscriptSearchBar({
       </Text> : null}
   </Box>;
 }
-const TITLE_ANIMATION_FRAMES = ['⠂', '⠐'];
-const TITLE_STATIC_PREFIX = '';
-const TITLE_ANIMATION_INTERVAL_MS = 960;
+const TITLE_ANIMATION_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const TITLE_STATIC_PREFIX = '>_';
+const TITLE_ANIMATION_INTERVAL_MS = 80;
 
 /**
  * Sets the terminal tab title, with an animated prefix glyph while a query
