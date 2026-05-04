@@ -43,6 +43,8 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
     return <ExitFlow showWorktree={showWorktree} onDone={onDone} onCancel={() => onDone()} />;
   }
   onDone(getRandomGoodbyeMessage());
-  await gracefulShutdown(0, 'prompt_input_exit');
+  // Fire-and-forget: lets the Promise chain unwind and clear userInputOnProcessing
+  // (which hides the spinner) before gracefulShutdown's 20ms timer unmounts Ink.
+  void gracefulShutdown(0, 'prompt_input_exit');
   return null;
 }
