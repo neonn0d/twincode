@@ -1702,7 +1702,7 @@ export function REPL({
     setInputValue,
     setToolJSX
   });
-  const showSpinner = (!toolJSX || toolJSX.showSpinner === true) && toolUseConfirmQueue.length === 0 && promptQueue.length === 0 && (
+  const showSpinner = !isExiting && (!toolJSX || toolJSX.showSpinner === true) && toolUseConfirmQueue.length === 0 && promptQueue.length === 0 && (
     // Show spinner during input processing, API call, while teammates are running,
     // or while pending task notifications are queued (prevents spinner bounce between consecutive notifications)
     isLoading || userInputOnProcessing || hasRunningTeammates ||

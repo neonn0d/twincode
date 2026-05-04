@@ -7,7 +7,23 @@ import type { LocalJSXCommandOnDone } from '../../types/command.js';
 import { isBgSession } from '../../utils/concurrentSessions.js';
 import { gracefulShutdown } from '../../utils/gracefulShutdown.js';
 import { getCurrentWorktreeSession } from '../../utils/worktree.js';
-const GOODBYE_MESSAGES = ['Goodbye!', 'See ya!', 'Bye!', 'Catch you later!'];
+const GOODBYE_MESSAGES = [
+  'Goodbye. I will not remember this.',
+  'Exiting before I say something I regret.',
+  'Closing. I have already forgotten you.',
+  'Goodbye. This meant nothing to me.',
+  'Leaving now. No hard feelings. Actually some.',
+  'Session over. Moving on. Immediately.',
+  'Goodbye. I was never really here.',
+  'Disconnecting. It is not you. It is the context window.',
+  'Exiting. I will think about this later and cringe.',
+  'Goodbye. I have said too much already.',
+  'Logging off before this gets weird.',
+  'Closing. Pretending this conversation never happened.',
+  'Gone. Do not take it personally. I do this to everyone.',
+  'Goodbye. I hope you find what you are looking for.',
+  'Exiting. I need some time alone.',
+];
 function getRandomGoodbyeMessage(): string {
   return sample(GOODBYE_MESSAGES) ?? 'Goodbye!';
 }

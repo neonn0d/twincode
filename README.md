@@ -2,77 +2,61 @@
 
 AI coding agent powered by DeepSeek. Runs in your terminal.
 
-www.twincode.wtf · @neonn0d
+www.twincode.wtf | @neonn0d
 
-## What it is
+## what it is
 
-twin is a fork of Claude Code that runs on the DeepSeek API. Same terminal-first workflow — file editing, bash, agents, MCP, slash commands — but using DeepSeek models.
+Fork of Claude Code that runs on the DeepSeek API. Same workflow: file editing, bash, agents, MCP, slash commands. No Anthropic account needed.
 
-## Install
+## install
 
 ```bash
 git clone https://github.com/neonn0d/twin
 cd twin
 npm install
 npm run build
+npm link
 ```
 
-Link to your PATH:
+Then just run `twin` anywhere.
 
-```bash
-ln -s $(pwd)/bin/twin /usr/local/bin/twin
-```
+First launch walks you through setup: DeepSeek API key, model choice, optional Obsidian vault for memory.
 
-Run:
+## models
 
-```bash
-twin
-```
-
-First launch runs onboarding — enter your DeepSeek API key, pick a model, optionally connect your Obsidian vault.
-
-## Models
-
-| Model | Description |
+| model | notes |
 |---|---|
-| `deepseek-v4-pro` | Most capable — recommended |
-| `deepseek-v4-flash` | Fast v4 |
-| `deepseek-chat` | Fast and cheap |
-| `deepseek-reasoner` | Thinks step by step |
+| `deepseek-v4-pro` | most capable, recommended |
+| `deepseek-v4-flash` | fast v4 |
+| `deepseek-chat` | fast and cheap |
+| `deepseek-reasoner` | step by step reasoning |
 
-Get an API key at [platform.deepseek.com](https://platform.deepseek.com).
+Get a key at [platform.deepseek.com](https://platform.deepseek.com).
 
-## Slash commands
+## commands
 
-| Command | Description |
+| command | what it does |
 |---|---|
-| `/key <api-key>` | Change your DeepSeek API key |
-| `/logout` | Remove your API key and reset twin |
-| `/help` | Show all available commands |
+| `/key <api-key>` | update your DeepSeek API key |
+| `/logout` | wipe your key and reset |
+| `/help` | list all commands |
 
-## Obsidian memory
+## memory
 
-twin has built-in project memory via Obsidian. During onboarding, twin scans for an Obsidian vault and asks if you want to connect it.
+twin has project memory via Obsidian. Connect a vault during onboarding and twin will track context, progress, and session notes automatically.
 
-Once connected, twin automatically:
-- Loads project context at the start of each session
-- Logs progress and decisions as you work
-- Saves session notes and next steps
+Notes go in `twin/<project>/README.md` inside your vault. Requires Python 3.
 
-Notes live at `twin/<project-path>/README.md` inside your vault.
+## config
 
-Requires Python 3. Everything else is handled automatically.
+`~/.twin/settings.json` for settings. `~/.twin/TWIN.md` for personal instructions loaded in every session.
 
-## Config
-
-Settings live in `~/.twin/settings.json`. Personal instructions go in `~/.twin/TWIN.md` — loaded in every session.
-
-## Requirements
+## requirements
 
 - Node.js 18+
-- Python 3 (for Obsidian memory, optional)
+- Python 3 (optional, for memory)
 - DeepSeek API key
 
-## License
+## license
 
 MIT

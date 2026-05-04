@@ -41,29 +41,38 @@ export function printStartupScreen(modelOverride?: string): void {
   const git = getGitInfo()
   const cwd = process.cwd()
   const home = process.env.HOME || ''
-  const displayCwd = home && cwd.startsWith(home) ? `~${cwd.slice(home.length)}` : cwd
+  const rawCwd = home && cwd.startsWith(home) ? `~${cwd.slice(home.length)}` : cwd
+  const atHome = rawCwd === '~'
   const version = `v${MACRO.DISPLAY_VERSION ?? MACRO.VERSION}`
 
   const GRAY = rgb(120, 130, 140)
   const BLUE = rgb(100, 180, 255)
+  const DARK_BLUE = rgb(40, 90, 160)
   const GREEN = rgb(100, 200, 120)
   const YELLOW = rgb(220, 180, 80)
   const ORANGE = rgb(255, 160, 60)
 
-  const row1 = `${BOLD}${BLUE}twin${RESET} ${DIM}${GRAY}${version}${RESET}  ${GRAY}${p.model}${RESET}`
-  let row2 = `${DIM}${GRAY}└─ ${displayCwd}${RESET}`
+  const pathBracket = atHome ? `-[~]` : ''
+  const row1 = `${DARK_BLUE}┌──(${RESET}${BOLD}${BLUE}twin${RESET} ${DIM}${GRAY}${version}  model:${RESET}${GRAY}${p.model}${DARK_BLUE})${RESET}${DARK_BLUE}${pathBracket}${RESET}`
+  let row2 = `${DARK_BLUE}└──╼${RESET}`
+  if (!atHome) row2 += `${DARK_BLUE}[${RESET}${GRAY}${rawCwd}${DARK_BLUE}]${RESET}`
   if (git) {
-    const mark = git.dirty ? `${ORANGE}✦${RESET}` : `${GREEN}✔${RESET}`
-    row2 += `  ${DIM}${GRAY}⎇ ${RESET}${YELLOW}${git.branch}${RESET} ${mark}`
+    const mark = git.dirty ? ` ${ORANGE}*${RESET}` : ''
+    const nameColor = git.dirty ? BLUE : GRAY
+    const branch = `${BLUE}${RESET}${nameColor}${git.branch}${RESET}${mark}`
+    row2 += ' ' + branch
   }
 
   const out: string[] = ['']
   for (const line of LOGO_LINES) out.push(`${BLUE}${line}${RESET}`)
   out.push('')
-  out.push(`${DIM}${GRAY}www.twincode.wtf  @neonn0d${RESET}`)
+  const tagline = 'www.twincode.wtf'
+  const logoWidth = 43
+  const pad = ' '.repeat(Math.floor((logoWidth - tagline.length) / 2))
+  out.push(`${pad}${BLUE}${tagline}${RESET}`)
   out.push('')
   out.push(row1)
-  out.push(row2)
+  if (row2) out.push(row2)
   out.push('')
 
   process.stdout.write(out.join('\n') + '\n')

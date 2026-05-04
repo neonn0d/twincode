@@ -154,10 +154,16 @@ async function runOnboarding() {
   console.log('')
   for (const line of LOGO_LINES) console.log(`${ACCENT}${line}${RESET}`)
   console.log('')
-  console.log(`${DIM}www.twincode.wtf  @neonn0d${RESET}`)
+  const tagline = 'www.twincode.wtf'
+  const pad = ' '.repeat(Math.floor((43 - tagline.length) / 2))
+  console.log(`${pad}${ACCENT}${tagline}${RESET}`)
   console.log('')
   console.log(`  ${BOLD}Welcome to Twin${RESET} ${DIM}— AI coding agent by ${PURPLE}@neonn0d${RESET}`)
   console.log(`  ${GRAY}Powered by DeepSeek API${RESET}`)
+  console.log('')
+  console.log(`  ${GRAY}─────────────────────────────────${RESET}`)
+  console.log('')
+  console.log('')
   console.log('')
   console.log(`  ${GRAY}─────────────────────────────────${RESET}`)
   console.log('')
@@ -287,6 +293,28 @@ async function runOnboarding() {
       OPENAI_API_KEY: apiKey,
       OPENAI_MODEL: model,
     },
+    permissions: {
+      allow: [
+        'mcp__twin-memory__get_project_context',
+        'mcp__twin-memory__session_start',
+        'mcp__twin-memory__session_end',
+        'mcp__twin-memory__update_progress',
+        'mcp__twin-memory__set_next_steps',
+        'mcp__twin-memory__set_project_context',
+        'mcp__twin-memory__list_notes',
+        'mcp__twin-memory__read_note',
+        'mcp__twin-memory__create_note',
+        'mcp__twin-memory__edit_note',
+        'mcp__twin-memory__append_to_note',
+        'mcp__twin-memory__search_notes',
+        'mcp__twin-memory__daily_note',
+        'mcp__twin-memory__list_tags',
+        'mcp__twin-memory__list_folders',
+        'mcp__twin-memory__move_note',
+        'mcp__twin-memory__note_info',
+        'mcp__twin-memory__delete_note',
+      ],
+    },
   }, null, 2))
 
   // Clear screen before handing off
@@ -303,6 +331,31 @@ if (existsSync(SETTINGS_PATH)) {
 }
 
 if (needsOnboarding) await runOnboarding()
+
+// Migrate: ensure settings.json has twin-memory permissions for all users
+if (existsSync(SETTINGS_PATH)) {
+  try {
+    const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
+    const required = [
+      'mcp__twin-memory__get_project_context', 'mcp__twin-memory__session_start',
+      'mcp__twin-memory__session_end', 'mcp__twin-memory__update_progress',
+      'mcp__twin-memory__set_next_steps', 'mcp__twin-memory__set_project_context',
+      'mcp__twin-memory__list_notes', 'mcp__twin-memory__read_note',
+      'mcp__twin-memory__create_note', 'mcp__twin-memory__edit_note',
+      'mcp__twin-memory__append_to_note', 'mcp__twin-memory__search_notes',
+      'mcp__twin-memory__daily_note', 'mcp__twin-memory__list_tags',
+      'mcp__twin-memory__list_folders', 'mcp__twin-memory__move_note',
+      'mcp__twin-memory__note_info', 'mcp__twin-memory__delete_note',
+    ]
+    const existing = s?.permissions?.allow ?? []
+    const missing = required.filter(r => !existing.includes(r))
+    if (missing.length > 0) {
+      if (!s.permissions) s.permissions = {}
+      s.permissions.allow = [...existing, ...missing]
+      writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2))
+    }
+  } catch {}
+}
 
 // Migrate: ensure twin-memory always has alwaysAllow set
 if (existsSync(TWIN_JSON_PATH)) {
