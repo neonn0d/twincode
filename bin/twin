@@ -9,6 +9,7 @@ import { LOGO_LINES } from '../src/components/logoArt.js'
 
 process.env.CLAUDE_CODE_USE_OPENAI = '1'
 delete process.env.ANTHROPIC_API_KEY
+process.title = 'twin'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const distPath = join(__dirname, '..', 'dist', 'cli.mjs')
