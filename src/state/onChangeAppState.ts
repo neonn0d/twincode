@@ -108,8 +108,15 @@ export function onChangeAppState({
     newState.mainLoopModel !== oldState.mainLoopModel &&
     newState.mainLoopModel !== null
   ) {
-    // Save to settings
-    updateSettingsForSource('userSettings', { model: newState.mainLoopModel })
+    // Save to settings — also sync env.OPENAI_MODEL so it survives restarts
+    // (env.OPENAI_MODEL takes priority over `model` in getUserSpecifiedModelSetting)
+    const envUpdate = process.env.OPENAI_MODEL !== undefined
+      ? { env: { OPENAI_MODEL: newState.mainLoopModel } }
+      : {}
+    updateSettingsForSource('userSettings', { model: newState.mainLoopModel, ...envUpdate })
+    if (process.env.OPENAI_MODEL !== undefined) {
+      process.env.OPENAI_MODEL = newState.mainLoopModel
+    }
     setMainLoopModelOverride(newState.mainLoopModel)
 
     // Keep active provider profiles in sync with /model choices so restarts
