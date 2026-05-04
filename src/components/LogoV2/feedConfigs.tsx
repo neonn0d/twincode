@@ -47,7 +47,7 @@ export function createWhatsNewFeed(releaseNotes: string[]): FeedConfig {
   });
   const emptyMessage = "external" === 'ant' ? 'Unable to fetch latest claude-cli-internal commits' : 'Check /release-notes for recent updates';
   return {
-    title: "external" === 'ant' ? "localcode Updates [internal-only: Latest CC commits]" : "localcode Updates",
+    title: "external" === 'ant' ? "twin Updates [internal-only: Latest CC commits]" : "twin Updates",
     lines,
     footer: lines.length > 0 ? '/release-notes for more' : undefined,
     emptyMessage
@@ -66,7 +66,7 @@ export function createProjectOnboardingFeed(steps: Step[]): FeedConfig {
       text: `${checkmark}${text}`
     };
   });
-  const warningText = getCwd() === homedir() ? 'Note: You have launched localcode in your home directory. For the best experience, launch it in a project directory instead.' : undefined;
+  const warningText = getCwd() === homedir() ? 'Note: You have launched twin in your home directory. For the best experience, launch it in a project directory instead.' : undefined;
   if (warningText) {
     lines.push({
       text: warningText
@@ -79,7 +79,7 @@ export function createProjectOnboardingFeed(steps: Step[]): FeedConfig {
 }
 export function createGuestPassesFeed(): FeedConfig {
   const reward = getCachedReferrerReward();
-  const subtitle = reward ? `Share localcode and earn ${formatCreditAmount(reward)} of extra usage` : 'Share localcode with friends';
+  const subtitle = reward ? `Share twin and earn ${formatCreditAmount(reward)} of extra usage` : 'Share twin with friends';
   return {
     title: '3 guest passes',
     lines: [],

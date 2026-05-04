@@ -77,7 +77,7 @@ export function getAttributionTexts(): AttributionTexts {
   const defaultAttribution =
     '🤖 Generated with [twin](https://github.com/neonn0d/twin)'
   const coAuthorDomain =
-    getAPIProvider() === 'firstParty' ? 'anthropic.com' : 'localcode.dev'
+    getAPIProvider() === 'firstParty' ? 'anthropic.com' : 'twin.dev'
   const defaultCommit = isEnvTruthy(
     process.env.OPENCLAUDE_DISABLE_CO_AUTHORED_BY,
   )

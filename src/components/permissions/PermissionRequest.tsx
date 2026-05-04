@@ -128,16 +128,16 @@ export type ToolUseConfirm<Input extends AnyObject = AnyObject> = {
 function getNotificationMessage(toolUseConfirm: ToolUseConfirm): string {
   const toolName = toolUseConfirm.tool.userFacingName(toolUseConfirm.input as never);
   if (toolUseConfirm.tool === ExitPlanModeV2Tool) {
-    return 'localcode needs your approval for the plan';
+    return 'twin needs your approval for the plan';
   }
   if (toolUseConfirm.tool === EnterPlanModeTool) {
-    return 'localcode wants to enter plan mode';
+    return 'twin wants to enter plan mode';
   }
   if (feature('REVIEW_ARTIFACT') && toolUseConfirm.tool === ReviewArtifactTool) {
-    return 'localcode needs your approval for a review artifact';
+    return 'twin needs your approval for a review artifact';
   }
   if (!toolName || toolName.trim() === '') {
-    return 'localcode needs your attention';
+    return 'twin needs your attention';
   }
   return `twin needs your permission to use ${toolName}`;
 }

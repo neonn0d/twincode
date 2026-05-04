@@ -12,7 +12,7 @@ import { getCwd } from '../../utils/cwd.js'
 function renderHelp(): string {
   return `Usage: /wiki [init|status|ingest <path>]
 
-Manage the localcode project wiki stored in .localcode/wiki.
+Manage the twin project wiki stored in .localcode/wiki.
 
 Commands:
   /wiki init    Initialize the wiki structure in the current project
@@ -26,7 +26,7 @@ Examples:
 }
 
 function formatInitResult(result: Awaited<ReturnType<typeof initializeWiki>>): string {
-  const lines = [`Initialized localcode wiki at ${result.root}`]
+  const lines = [`Initialized twin wiki at ${result.root}`]
 
   if (result.alreadyExisted) {
     lines.push('', 'Wiki already existed. No new files were created.')
@@ -49,7 +49,7 @@ function formatStatus(status: Awaited<ReturnType<typeof getWikiStatus>>): string
   }
 
   return [
-    'localcode wiki status',
+    'twin wiki status',
     '',
     `Root: ${status.root}`,
     `Pages: ${status.pageCount}`,
@@ -65,7 +65,7 @@ function formatIngestResult(
   result: Awaited<ReturnType<typeof ingestLocalWikiSource>>,
 ): string {
   return [
-    `Ingested ${result.sourceFile} into the localcode wiki.`,
+    `Ingested ${result.sourceFile} into the twin wiki.`,
     '',
     `Title: ${result.title}`,
     `Source note: ${result.sourceNote}`,

@@ -100,7 +100,7 @@ export function calculateOptimalLeftWidth(
  */
 export function formatWelcomeMessage(username: string | null): string {
   if (!username || username.length > MAX_USERNAME_LENGTH) {
-    return 'Welcome to localcode'
+    return 'Welcome to twin'
   }
   return `Welcome back, ${username}`
 }

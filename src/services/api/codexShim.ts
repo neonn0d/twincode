@@ -553,7 +553,7 @@ export async function performCodexRequest(options: {
   if (options.credentials.accountId) {
     headers['chatgpt-account-id'] = options.credentials.accountId
   }
-  headers.originator ??= 'localcode'
+  headers.originator ??= 'twin'
 
   const response = await fetchWithProxyRetry(
     `${options.request.baseUrl}/responses`,

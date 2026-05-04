@@ -3,7 +3,7 @@ import type { Command } from '../../commands.js'
 const stickers = {
   type: 'local',
   name: 'stickers',
-  description: 'Order localcode stickers',
+  description: 'Order twin stickers',
   supportsNonInteractive: false,
   load: () => import('./stickers.js'),
 } satisfies Command

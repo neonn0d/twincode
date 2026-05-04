@@ -511,6 +511,6 @@ export async function validateProviderEnvForStartupOrExit(
   }
 
   console.error(
-    `Warning: provider configuration is incomplete.\n${error}\nlocalcode will continue starting so you can run /provider and repair the saved provider settings.`,
+    `Warning: provider configuration is incomplete.\n${error}\ntwin will continue starting so you can run /provider and repair the saved provider settings.`,
   )
 }

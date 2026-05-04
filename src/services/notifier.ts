@@ -35,7 +35,7 @@ export async function sendNotification(
   })
 }
 
-const DEFAULT_TITLE = 'localcode'
+const DEFAULT_TITLE = 'twin'
 
 async function sendToChannel(
   channel: string,

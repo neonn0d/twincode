@@ -429,7 +429,7 @@ function CodexOAuthSetup({
         Codex OAuth
       </Text>
       <Text>
-        Sign in with your ChatGPT account in the browser. localcode will store
+        Sign in with your ChatGPT account in the browser. twin will store
         the resulting Codex credentials securely and switch this session to the
         new Codex login when setup completes.
       </Text>
@@ -803,10 +803,10 @@ export function ProviderManager({ mode, onDone }: Props): React.ReactNode {
     }
 
     if (options.warnings.length > 0) {
-      return `${options.prefix}. localcode switched to it for this session with warnings: ${options.warnings.join('; ')}.`
+      return `${options.prefix}. twin switched to it for this session with warnings: ${options.warnings.join('; ')}.`
     }
 
-    return `${options.prefix}. localcode switched to it for this session.`
+    return `${options.prefix}. twin switched to it for this session.`
   }
 
   async function activateCodexOAuthSession(tokens?: {

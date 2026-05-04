@@ -28,7 +28,7 @@ type GitHubRelease = {
 }
 
 /**
- * We fetch localcode release notes from GitHub instead of bundling them with
+ * We fetch twin release notes from GitHub instead of bundling them with
  * the build.
  *
  * This is necessary because Ink's static rendering makes it difficult to
@@ -175,7 +175,7 @@ async function fetchGitHubReleases(): Promise<GitHubRelease[]> {
   const response = await axios.get<GitHubRelease[]>(RELEASES_API_URL, {
     headers: {
       Accept: 'application/vnd.github+json',
-      'User-Agent': 'localcode',
+      'User-Agent': 'twin',
     },
   })
 
@@ -378,7 +378,7 @@ export function getRecentReleaseNotes(
     const baseCurrentVersion = coerce(currentVersion)
     let basePreviousVersion = previousVersion ? coerce(previousVersion) : null
 
-    // Older localcode builds stored the internal compatibility version
+    // Older twin builds stored the internal compatibility version
     // (e.g. 99.0.0) as the "seen" marker. Treat that as unseen so users
     // can start receiving release notes keyed to the public version.
     if (

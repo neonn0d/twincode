@@ -5,11 +5,11 @@
  * that the rest of the codebase uses for provider detection.
  *
  * Usage:
- *   localcode --provider openai --model gpt-4o
- *   localcode --provider gemini --model gemini-2.0-flash
- *   localcode --provider mistral --model ministral-3b-latest
- *   localcode --provider ollama --model llama3.2
- *   localcode --provider anthropic   (default, no-op)
+ *   twin --provider openai --model gpt-4o
+ *   twin --provider gemini --model gemini-2.0-flash
+ *   twin --provider mistral --model ministral-3b-latest
+ *   twin --provider ollama --model llama3.2
+ *   twin --provider anthropic   (default, no-op)
  */
 
 import '../integrations/index.js'

@@ -1137,7 +1137,7 @@ export function REPL({
   // session from mid-conversation context.
   const haikuTitleAttemptedRef = useRef((initialMessages?.length ?? 0) > 0);
   const agentTitle = mainThreadAgentDefinition?.agentType;
-  const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'localcode';
+  const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'twin';
   const isWaitingForApproval = toolUseConfirmQueue.length > 0 || promptQueue.length > 0 || pendingWorkerRequest || pendingSandboxRequest;
   // Local-jsx commands (like /plugin, /config) show user-facing dialogs that
   // wait for input. Require jsx != null — if the flag is stuck true but jsx
@@ -4190,7 +4190,7 @@ export function REPL({
   useEffect(() => {
     const handleSuspend = () => {
       // Print suspension instructions
-      process.stdout.write(`\nlocalcode has been suspended. Run \`fg\` to bring localcode back.\nNote: ctrl + z now suspends localcode, ctrl + _ undoes input.\n`);
+      process.stdout.write(`\ntwin has been suspended. Run \`fg\` to bring twin back.\nNote: ctrl + z now suspends twin, ctrl + _ undoes input.\n`);
     };
     const handleResume = () => {
       // Force complete component tree replacement instead of terminal clear

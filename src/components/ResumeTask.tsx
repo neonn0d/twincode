@@ -261,7 +261,7 @@ function renderErrorSpecificGuidance(errorType: LoadErrorType): React.ReactNode 
         </Box>;
     case 'other':
       return <Box marginY={1} flexDirection="row">
-          <Text dimColor>Sorry, localcode encountered an error</Text>
+          <Text dimColor>Sorry, twin encountered an error</Text>
         </Box>;
   }
 }

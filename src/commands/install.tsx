@@ -44,7 +44,7 @@ export function getInstallationPath(): string {
   const homeDir = homedir();
   if (isWindows) {
     // Convert to Windows-style path
-    const windowsPath = join(homeDir, '.local', 'bin', 'localcode.exe');
+    const windowsPath = join(homeDir, '.local', 'bin', 'twin.exe');
     // Replace forward slashes with backslashes for Windows display
     return windowsPath.replace(/\//g, '\\');
   }

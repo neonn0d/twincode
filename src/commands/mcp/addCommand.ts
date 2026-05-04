@@ -34,7 +34,7 @@ export function registerMcpAddCommand(mcp: Command): void {
   mcp
     .command('add <name> <commandOrUrl> [args...]')
     .description(
-      'Add an MCP server to localcode.\n\n' +
+      'Add an MCP server to twin.\n\n' +
         'Examples:\n' +
         '  # Add HTTP server:\n' +
         '  twin mcp add --transport http sentry https://mcp.sentry.dev/mcp\n\n' +

@@ -38,7 +38,7 @@ export function getCandidateLocalInstallDirs(options?: {
 
 function getCandidateLocalBinaryPaths(localInstallDir: string): string[] {
   return [
-    join(localInstallDir, 'node_modules', '.bin', 'localcode'),
+    join(localInstallDir, 'node_modules', '.bin', 'twin'),
     join(localInstallDir, 'node_modules', '.bin', 'claude'),
   ]
 }
@@ -52,7 +52,7 @@ export function isManagedLocalInstallationPath(execPath: string): boolean {
 }
 
 export function getLocalClaudePath(): string {
-  return join(getLocalInstallDir(), 'localcode')
+  return join(getLocalInstallDir(), 'twin')
 }
 
 /**
@@ -95,7 +95,7 @@ export async function ensureLocalPackageEnvironment(): Promise<boolean> {
     await writeIfMissing(
       join(localInstallDir, 'package.json'),
       jsonStringify(
-        { name: 'localcode-local', version: '0.0.1', private: true },
+        { name: 'twin-local', version: '0.0.1', private: true },
         null,
         2,
       ),
@@ -105,7 +105,7 @@ export async function ensureLocalPackageEnvironment(): Promise<boolean> {
     const wrapperPath = getLocalClaudePath()
     const created = await writeIfMissing(
       wrapperPath,
-      `#!/bin/sh\nexec "${localInstallDir}/node_modules/.bin/localcode" "$@"`,
+      `#!/bin/sh\nexec "${localInstallDir}/node_modules/.bin/twin" "$@"`,
       0o755,
     )
     if (created) {

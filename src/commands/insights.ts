@@ -247,7 +247,7 @@ function getSessionMetaDir(): string {
   return join(getDataDir(), 'session-meta')
 }
 
-const FACET_EXTRACTION_PROMPT = `Analyze this localcode session and extract structured facets.
+const FACET_EXTRACTION_PROMPT = `Analyze this twin session and extract structured facets.
 
 CRITICAL GUIDELINES:
 
@@ -687,7 +687,7 @@ function formatTranscriptForFacets(log: LogOption): string {
   return lines.join('\n')
 }
 
-const SUMMARIZE_CHUNK_PROMPT = `Summarize this portion of a localcode session transcript. Focus on:
+const SUMMARIZE_CHUNK_PROMPT = `Summarize this portion of a twin session transcript. Focus on:
 1. What the user asked for
 2. What Claude did (tools used, files modified)
 3. Any friction or issues
@@ -1161,7 +1161,7 @@ const INSIGHT_SECTIONS: InsightSection[] = [
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
   "areas": [
-    {"name": "Area name", "session_count": N, "description": "2-3 sentences about what was worked on and how localcode was used."}
+    {"name": "Area name", "session_count": N, "description": "2-3 sentences about what was worked on and how twin was used."}
   ]
 }
 
@@ -1555,7 +1555,7 @@ async function generateParallelInsights(
       .join('\n') || ''
 
   // Now generate "At a Glance" with access to other sections' outputs
-  const atAGlancePrompt = `You're writing an "At a Glance" summary for a localcode usage insights report for localcode users. The goal is to help them understand their usage and improve how they can use Claude better, especially as models improve.
+  const atAGlancePrompt = `You're writing an "At a Glance" summary for a twin usage insights report for twin users. The goal is to help them understand their usage and improve how they can use Claude better, especially as models improve.
 
 Use this 4-part structure:
 
@@ -1563,7 +1563,7 @@ Use this 4-part structure:
 
 2. **What's hindering you** - Split into (a) Claude's fault (misunderstandings, wrong approaches, bugs) and (b) user-side friction (not providing enough context, environment issues -- ideally more general than just one project). Be honest but constructive.
 
-3. **Quick wins to try** - Specific localcode features they could try from the examples below, or a workflow technique if you think it's really compelling. (Avoid stuff like "Ask Claude to confirm before taking actions" or "Type out more context up front" which are less compelling.)
+3. **Quick wins to try** - Specific twin features they could try from the examples below, or a workflow technique if you think it's really compelling. (Avoid stuff like "Ask Claude to confirm before taking actions" or "Type out more context up front" which are less compelling.)
 
 4. **Ambitious workflows for better models** - As we move to much more capable models over the next 3-6 months, what should they prepare for? What workflows that seem impossible now will become possible? Draw from the appropriate section below.
 
@@ -1826,7 +1826,7 @@ function generateHtmlReport(
   const interactionStyle = insights.interaction_style
   const interactionHtml = interactionStyle?.narrative
     ? `
-    <h2 id="section-usage">How You Use localcode</h2>
+    <h2 id="section-usage">How You Use twin</h2>
     <div class="narrative">
       ${markdownToHtml(interactionStyle.narrative)}
       ${interactionStyle.key_pattern ? `<div class="key-insight"><strong>Key pattern:</strong> ${escapeHtml(interactionStyle.key_pattern)}</div>` : ''}
@@ -1890,7 +1890,7 @@ function generateHtmlReport(
     <h2 id="section-features">Existing CC Features to Try</h2>
     <div class="claude-md-section">
       <h3>Suggested CLAUDE.md Additions</h3>
-      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Just copy this into localcode to add it to your CLAUDE.md.</p>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Just copy this into twin to add it to your CLAUDE.md.</p>
       <div class="claude-md-actions">
         <button class="copy-all-btn" onclick="copyAllCheckedClaudeMd()">Copy All Checked</button>
       </div>
@@ -1915,7 +1915,7 @@ function generateHtmlReport(
     ${
       suggestions.features_to_try && suggestions.features_to_try.length > 0
         ? `
-    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into localcode and it'll set it up for you.</p>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into twin and it'll set it up for you.</p>
     <div class="features-section">
       ${suggestions.features_to_try
         .map(
@@ -1949,8 +1949,8 @@ function generateHtmlReport(
     ${
       suggestions.usage_patterns && suggestions.usage_patterns.length > 0
         ? `
-    <h2 id="section-patterns">New Ways to Use localcode</h2>
-    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into localcode and it'll walk you through it.</p>
+    <h2 id="section-patterns">New Ways to Use twin</h2>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into twin and it'll walk you through it.</p>
     <div class="patterns-section">
       ${suggestions.usage_patterns
         .map(
@@ -1963,7 +1963,7 @@ function generateHtmlReport(
             pat.copyable_prompt
               ? `
           <div class="copyable-prompt-section">
-            <div class="prompt-label">Paste into localcode:</div>
+            <div class="prompt-label">Paste into twin:</div>
             <div class="copyable-prompt-row">
               <code class="copyable-prompt">${escapeHtml(pat.copyable_prompt)}</code>
               <button class="copy-btn" onclick="copyText(this)">Copy</button>
@@ -1998,7 +1998,7 @@ function generateHtmlReport(
           <div class="horizon-title">${escapeHtml(opp.title || '')}</div>
           <div class="horizon-possible">${escapeHtml(opp.whats_possible || '')}</div>
           ${opp.how_to_try ? `<div class="horizon-tip"><strong>Getting started:</strong> ${escapeHtml(opp.how_to_try)}</div>` : ''}
-          ${opp.copyable_prompt ? `<div class="pattern-prompt"><div class="prompt-label">Paste into localcode:</div><code>${escapeHtml(opp.copyable_prompt)}</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>` : ''}
+          ${opp.copyable_prompt ? `<div class="pattern-prompt"><div class="prompt-label">Paste into twin:</div><code>${escapeHtml(opp.copyable_prompt)}</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>` : ''}
         </div>
       `,
         )
@@ -2305,13 +2305,13 @@ function generateHtmlReport(
 <html>
 <head>
   <meta charset="utf-8">
-  <title>localcode Insights</title>
+  <title>twin Insights</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>${css}</style>
 </head>
 <body>
   <div class="container">
-    <h1>localcode Insights</h1>
+    <h1>twin Insights</h1>
     <p class="subtitle">${data.total_messages.toLocaleString()} messages across ${data.total_sessions} sessions${data.total_sessions_scanned && data.total_sessions_scanned > data.total_sessions ? ` (${data.total_sessions_scanned.toLocaleString()} total)` : ''} | ${data.date_range.start} to ${data.date_range.end}</p>
 
     ${atAGlanceHtml}
@@ -2377,7 +2377,7 @@ function generateHtmlReport(
         data.multi_clauding.overlap_events === 0
           ? `
         <p style="font-size: 14px; color: #64748b; padding: 8px 0;">
-          No parallel session usage detected. You typically work with one localcode session at a time.
+          No parallel session usage detected. You typically work with one twin session at a time.
         </p>
       `
           : `
@@ -2874,7 +2874,7 @@ ${atAGlance.quick_wins ? `**Quick wins to try:** ${atAGlance.quick_wins} See _Fe
 ${atAGlance.ambitious_workflows ? `**Ambitious workflows:** ${atAGlance.ambitious_workflows} See _On the Horizon_.` : ''}`
       : '_No insights generated_'
 
-    const header = `# localcode Insights
+    const header = `# twin Insights
 
 ${stats}
 ${data.date_range.start} to ${data.date_range.end}
