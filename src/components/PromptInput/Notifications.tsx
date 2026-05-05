@@ -285,8 +285,7 @@ function NotificationContent({
     return <VoiceIndicator voiceState={voiceState} />;
   }
   return <>
-      <IdeStatusIndicator ideSelection={ideSelection} mcpClients={mcpClients} />
-      {notifications.current && ('jsx' in notifications.current ? <Text wrap="truncate" key={notifications.current.key}>
+{notifications.current && ('jsx' in notifications.current ? <Text wrap="truncate" key={notifications.current.key}>
             {notifications.current.jsx}
           </Text> : <Text color={notifications.current.color} dimColor={!notifications.current.color} wrap="truncate">
             {notifications.current.text}

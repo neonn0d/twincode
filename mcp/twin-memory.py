@@ -3,6 +3,7 @@
 
 import os
 import re
+import textwrap
 import yaml
 from datetime import datetime
 from pathlib import Path
@@ -38,22 +39,22 @@ def _parse_frontmatter(content: str) -> tuple[dict, str]:
     return {}, content
 
 
-def _project_note_path(cwd: str) -> Path:
-    """Map a cwd path to its vault project note using full relative path.
-    Auto-migrates legacy flat files (twin/bb.md) to twin/Desktop/bb/README.md.
-    """
+def _project_dir(cwd: str) -> Path:
+    """Return the vault directory for this project: twin/<rel>/"""
     try:
         rel = str(Path(cwd).relative_to(Path.home()))
     except ValueError:
         rel = Path(cwd).name
-    name = Path(cwd).name
-    target = VAULT_PATH / "twin" / rel / "README.md"
+    return VAULT_PATH / "twin" / rel
 
-    # If already in right place, done
+
+def _project_note_path(cwd: str) -> Path:
+    """Return README.md path for this project. Auto-migrates legacy flat files."""
+    d = _project_dir(cwd)
+    target = d / "README.md"
     if target.exists():
         return target
-
-    # Check for legacy flat file and migrate it
+    name = Path(cwd).name
     for legacy in [
         VAULT_PATH / "twin" / f"{name}.md",
         VAULT_PATH / "twin" / name / "README.md",
@@ -62,8 +63,35 @@ def _project_note_path(cwd: str) -> Path:
             target.parent.mkdir(parents=True, exist_ok=True)
             legacy.rename(target)
             return target
-
     return target
+
+
+def _brain_dir(cwd: str) -> Path:
+    """Return the brain directory for this project: twin/<rel>/brain/"""
+    return _project_dir(cwd) / "brain"
+
+
+def _slugify(topic: str) -> str:
+    topic = topic.lower().strip()
+    topic = re.sub(r'[^a-z0-9\-]+', '-', topic)
+    return topic.strip('-')
+
+
+def _session_file_path(cwd: str) -> Path:
+    """Return today's session file: twin/<rel>/sessions/YYYY-MM-DD.md"""
+    today = datetime.now().strftime("%Y-%m-%d")
+    return _project_dir(cwd) / "sessions" / f"{today}.md"
+
+
+def _ensure_session_file(cwd: str) -> Path:
+    """Create today's session file if it doesn't exist. Returns the path."""
+    sf = _session_file_path(cwd)
+    if not sf.exists():
+        sf.parent.mkdir(parents=True, exist_ok=True)
+        name = Path(cwd).name
+        today = datetime.now().strftime("%Y-%m-%d")
+        sf.write_text(f"# {name} — {today}\n")
+    return sf
 
 
 def _update_section(content: str, header: str, new_body: str) -> str:
@@ -82,153 +110,480 @@ def _update_section(content: str, header: str, new_body: str) -> str:
 
 @mcp.tool()
 def get_project_context(cwd: str) -> str:
-    """Get the project memory note for a given working directory.
+    """Get the project README and today's session file for a given working directory.
     Call this at the start of a session to load context about the project.
 
     Args:
         cwd: Absolute path of the working directory (e.g. /home/neo/Desktop/dev/sana)
     """
-    p = _project_note_path(cwd)
-    if not p.exists():
-        return f"No project note found for '{Path(cwd).name}'. Use session_start to create one."
-    return p.read_text(errors="replace")
+    readme = _project_note_path(cwd)
+    sf = _session_file_path(cwd)
+    out = []
+    if readme.exists():
+        out.append(f"=== README ===\n{readme.read_text(errors='replace')}")
+    else:
+        out.append(f"No project README yet for '{Path(cwd).name}'. Use session_start to create one.")
+    if sf.exists():
+        out.append(f"=== Today's session ({sf.name}) ===\n{sf.read_text(errors='replace')}")
+    return "\n\n".join(out)
 
 
 @mcp.tool()
 def session_start(cwd: str, goal: str = "") -> str:
-    """Log the start of a twin session for a project. Creates the project note if needed.
-    Call this automatically when twin launches in a project directory.
+    """Log the start of a twin session. Creates README + today's session file if needed.
+    Adds a timestamped section to sessions/YYYY-MM-DD.md and a link in README.
 
     Args:
         cwd: Absolute path of the working directory
         goal: Optional goal or task for this session
     """
-    p = _project_note_path(cwd)
     name = Path(cwd).name
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = datetime.now().strftime("%H:%M")
+    today = datetime.now().strftime("%Y-%m-%d")
 
-    if not p.exists():
-        p.parent.mkdir(parents=True, exist_ok=True)
-        content = f"# {name}\n\n## Context\n\n<!-- Describe this project here -->\n\n## Next Steps\n\n<!-- What needs to be done -->\n\n## Sessions\n\n"
-        p.write_text(content)
+    # Ensure README exists
+    readme = _project_note_path(cwd)
+    if not readme.exists():
+        readme.parent.mkdir(parents=True, exist_ok=True)
+        readme.write_text(
+            f"# {name}\n\n"
+            f"## Context\n\n<!-- Describe this project here -->\n\n"
+            f"## Next Steps\n\n<!-- What needs to be done -->\n\n"
+            f"## Sessions\n\n"
+        )
 
-    entry = f"### {now}"
+    # Add session link to README index (once per day)
+    readme_text = readme.read_text(errors="replace")
+    link = f"[[sessions/{today}]]"
+    if link not in readme_text:
+        entry = f"- {link}"
+        if goal:
+            entry += f" — {goal}"
+        entry += "\n"
+        if "## Sessions" in readme_text:
+            readme_text = readme_text.replace("## Sessions\n", f"## Sessions\n\n{entry}", 1)
+            # Clean up double blank lines
+            readme_text = re.sub(r'\n{3,}', '\n\n', readme_text)
+        else:
+            readme_text = readme_text.rstrip() + f"\n\n## Sessions\n\n{entry}"
+        readme.write_text(readme_text)
+
+    # Append to today's session file
+    sf = _ensure_session_file(cwd)
+    section = f"\n## {now}"
     if goal:
-        entry += f" — {goal}"
-    entry += "\n\n- Session started\n"
+        section += f" — {goal}"
+    section += "\n\n- Session started\n"
+    existing = sf.read_text(errors="replace")
+    sf.write_text(existing.rstrip() + "\n" + section)
 
-    existing = p.read_text(errors="replace")
-    if "## Sessions" in existing:
-        existing = existing.replace("## Sessions\n", f"## Sessions\n\n{entry}")
-    else:
-        existing = existing.rstrip() + f"\n\n## Sessions\n\n{entry}"
-
-    p.write_text(existing)
-    rel = p.relative_to(VAULT_PATH)
-    return f"Session started → {rel}\n\n{p.read_text(errors='replace')}"
+    return f"Session started → {sf.relative_to(VAULT_PATH)}"
 
 
 @mcp.tool()
 def session_end(cwd: str, summary: str) -> str:
-    """Log a summary at the end of a twin session.
+    """Log a summary at the end of a twin session. Writes to today's session file.
 
     Args:
         cwd: Absolute path of the working directory
         summary: What was accomplished this session (1-3 sentences)
     """
-    p = _project_note_path(cwd)
-    if not p.exists():
-        return f"No project note found for '{Path(cwd).name}'"
-
+    sf = _ensure_session_file(cwd)
     now = datetime.now().strftime("%H:%M")
     entry = f"- [{now}] Session ended: {summary}\n"
-
-    existing = p.read_text(errors="replace")
-    # Find the last session block and append there
-    last_session = existing.rfind("### ")
-    if last_session != -1:
-        next_section = existing.find("\n### ", last_session + 1)
-        if next_section == -1:
-            existing = existing.rstrip() + "\n" + entry
-        else:
-            existing = existing[:next_section] + "\n" + entry + existing[next_section:]
-    else:
-        existing = existing.rstrip() + "\n" + entry
-
-    p.write_text(existing)
-    return f"Session logged → {p.relative_to(VAULT_PATH)}"
+    existing = sf.read_text(errors="replace")
+    sf.write_text(existing.rstrip() + "\n" + entry)
+    return f"Session logged → {sf.relative_to(VAULT_PATH)}"
 
 
 @mcp.tool()
 def update_progress(cwd: str, text: str) -> str:
-    """Append a timestamped progress note to the current project.
+    """Append a timestamped progress note to today's session file.
     Use this when something important happens mid-session: a bug found, a decision made, something finished.
 
     Args:
         cwd: Absolute path of the working directory
         text: What happened / was done
     """
-    p = _project_note_path(cwd)
-    if not p.exists():
-        return f"No project note for '{Path(cwd).name}'. Run session_start first."
-
+    sf = _ensure_session_file(cwd)
     now = datetime.now().strftime("%H:%M")
     entry = f"- [{now}] {text}\n"
+    existing = sf.read_text(errors="replace")
+    sf.write_text(existing.rstrip() + "\n" + entry)
+    return f"Progress logged → {sf.relative_to(VAULT_PATH)}"
 
-    existing = p.read_text(errors="replace")
-    last_session = existing.rfind("### ")
-    if last_session != -1:
-        next_section = existing.find("\n### ", last_session + 1)
-        if next_section == -1:
-            existing = existing.rstrip() + "\n" + entry
-        else:
-            existing = existing[:next_section] + "\n" + entry + existing[next_section:]
+
+@mcp.tool()
+def log_session(
+    cwd: str,
+    title: str,
+    summary: str,
+    items: list | None = None,
+    discoveries: list | None = None,
+    warnings: list | None = None,
+    tips: list | None = None,
+    next_session: str | None = None,
+    diagram: str | None = None,
+) -> str:
+    """Write a formatted session log entry to today's session file.
+    Handles create vs append automatically. Generates proper Obsidian markdown.
+
+    Args:
+        cwd: Absolute path of the working directory
+        title: Short title of what this session was about (e.g. "Fixed trace endpoint + explored HLS proxy")
+        summary: 1-2 sentence prose summary of what happened and the outcome
+        items: List of {item, detail} dicts for the work table — use file names, route names, feature names as item
+        discoveries: List of strings — key findings/insights (rendered as > [!info] blue callouts)
+        warnings: List of strings — gotchas or things to watch (rendered as > [!warning] orange callouts)
+        tips: List of strings — best practices discovered this session (rendered as > [!tip] cyan callouts)
+        next_session: What to pick up next time (concrete, specific)
+        diagram: Mermaid diagram body (just the content — no fences, no ```mermaid wrapper)
+    """
+    sf = _session_file_path(cwd)
+    project = Path(cwd).name
+    now = datetime.now().strftime("%H:%M")
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Coerce list elements to str in case the model passes objects
+    def _to_str(v) -> str:
+        if isinstance(v, str):
+            return v
+        if isinstance(v, dict):
+            return " — ".join(str(x) for x in v.values())
+        return str(v)
+
+    if discoveries:
+        discoveries = [_to_str(d) for d in discoveries]
+    if warnings:
+        warnings = [_to_str(w) for w in warnings]
+    if tips:
+        tips = [_to_str(t) for t in tips]
+
+    lines: list[str] = []
+
+    # --- Section header ---
+    lines.append(f"## {now} — {title}")
+    lines.append("")
+    lines.append(summary)
+    lines.append("")
+
+    # --- Work table ---
+    if items:
+        lines.append("| File / Thing | What |")
+        lines.append("|:-------------|:-----|")
+        for it in items:
+            item_name = str(it.get("item", "")).strip()
+            detail = str(it.get("detail", "")).strip()
+            lines.append(f"| `{item_name}` | {detail} |")
+        lines.append("")
+
+    # --- Diagram ---
+    if diagram:
+        lines.append("```mermaid")
+        lines.append(textwrap.dedent(diagram).strip())
+        lines.append("```")
+        lines.append("")
+
+    # --- Discoveries ---
+    if discoveries:
+        for d in discoveries:
+            lines.append("> [!info] Key Finding")
+            for dline in textwrap.wrap(d, width=100):
+                lines.append(f"> {dline}")
+            lines.append("")
+
+    # --- Warnings ---
+    if warnings:
+        for w in warnings:
+            lines.append("> [!warning] Watch out")
+            for wline in textwrap.wrap(w, width=100):
+                lines.append(f"> {wline}")
+            lines.append("")
+
+    # --- Tips ---
+    if tips:
+        for t in tips:
+            lines.append("> [!tip] Best Practice")
+            for tline in textwrap.wrap(t, width=100):
+                lines.append(f"> {tline}")
+            lines.append("")
+
+    # --- Next session ---
+    if next_session:
+        lines.append(f"**Next session:** {next_session}")
+        lines.append("")
+
+    block = "\n".join(lines)
+
+    if not sf.exists():
+        sf.parent.mkdir(parents=True, exist_ok=True)
+        frontmatter = f"---\ntags: [{project}, session, {today}]\n---\n"
+        header = f"# {project} — {today}\n"
+        sf.write_text(frontmatter + header + "\n" + block)
+        # Add index link to README
+        readme = _project_note_path(cwd)
+        if readme.exists():
+            readme_text = readme.read_text(errors="replace")
+            link = f"[[sessions/{today}]]"
+            if link not in readme_text:
+                entry = f"- {link} — {title}\n"
+                if "## Sessions" in readme_text:
+                    readme_text = readme_text.replace("## Sessions\n", f"## Sessions\n\n{entry}", 1)
+                    readme_text = re.sub(r'\n{3,}', '\n\n', readme_text)
+                else:
+                    readme_text = readme_text.rstrip() + f"\n\n## Sessions\n\n{entry}"
+                readme.write_text(readme_text)
     else:
-        existing = existing.rstrip() + "\n" + entry
+        existing = sf.read_text(errors="replace")
+        sf.write_text(existing.rstrip() + "\n\n" + block)
+        # Update README index link to include title if it's a bare link
+        readme = _project_note_path(cwd)
+        if readme.exists():
+            readme_text = readme.read_text(errors="replace")
+            bare_link = f"[[sessions/{today}]]"
+            aliased_link = f"[[sessions/{today}|{today} — {title}]]"
+            # Replace bare link (not already aliased) with aliased version
+            if bare_link in readme_text and aliased_link not in readme_text:
+                readme_text = readme_text.replace(bare_link, aliased_link, 1)
+                readme.write_text(readme_text)
 
-    p.write_text(existing)
-    return f"Progress logged → {p.relative_to(VAULT_PATH)}"
+    return f"Session logged → {sf.relative_to(VAULT_PATH)}"
+
+
+@mcp.tool()
+def save_knowledge(
+    cwd: str,
+    topic: str,
+    summary: str,
+    sections: list | None = None,
+    items: list | None = None,
+    discoveries: list | None = None,
+    warnings: list | None = None,
+    tips: list | None = None,
+    questions: list | None = None,
+    tasks: list | None = None,
+    diagram: str | None = None,
+    patterns: list | None = None,
+) -> str:
+    """Save or update a brain knowledge note for this project.
+    Python generates proper Obsidian markdown — pass structured data, not raw markdown.
+
+    Args:
+        cwd: Absolute path of the working directory
+        topic: Short name for this knowledge topic (e.g. "patterns", "files", "architecture")
+        summary: 1-2 sentence description of what this note covers
+        sections: List of {heading, content} dicts — main text sections.
+                  content supports inline Obsidian markdown:
+                  **bold**, *italic*, ==highlight==, `code`, [[wikilink]], [[Note|alias]]
+        items: List of {item, detail} dicts — rendered as a table (file maps, routes, commands, packages)
+        discoveries: List of strings — key insights → > [!info] Key Finding callouts (blue)
+        warnings: List of strings — gotchas, constraints → > [!warning] Watch out callouts (orange)
+        tips: List of strings — best practices, hints → > [!tip] callouts (cyan)
+        questions: List of strings — open questions, unknowns → > [!question] callouts (yellow)
+        tasks: List of strings — things to explore or verify → rendered as - [ ] task list
+        diagram: Mermaid diagram body (content only — no fences, no ```mermaid wrapper).
+                 Supports: flowchart/graph TD, sequenceDiagram, gitGraph, pie, gantt
+        patterns: List of {name, language, code} dicts — labelled fenced code blocks
+    """
+    def _to_str(v) -> str:
+        if isinstance(v, str):
+            return v
+        if isinstance(v, dict):
+            return " — ".join(str(x) for x in v.values())
+        return str(v)
+
+    if discoveries:
+        discoveries = [_to_str(d) for d in discoveries]
+    if warnings:
+        warnings = [_to_str(w) for w in warnings]
+    if tips:
+        tips = [_to_str(t) for t in tips]
+    if questions:
+        questions = [_to_str(q) for q in questions]
+    if tasks:
+        tasks = [_to_str(t) for t in tasks]
+
+    project = Path(cwd).name
+    slug = _slugify(topic)
+    lines: list[str] = []
+
+    # --- Title + summary ---
+    lines.append(f"# {project} — {topic}")
+    lines.append("")
+    lines.append(summary)
+    lines.append("")
+
+    # --- Sections ---
+    if sections:
+        for sec in sections:
+            heading = str(sec.get("heading", "")).strip()
+            content = str(sec.get("content", "")).strip()
+            if heading:
+                lines.append(f"## {heading}")
+                lines.append("")
+            if content:
+                lines.append(content)
+                lines.append("")
+
+    # --- Items table ---
+    if items:
+        lines.append("| Item | Detail |")
+        lines.append("|:-----|:-------|")
+        for it in items:
+            item_name = str(it.get("item", "")).strip()
+            detail = str(it.get("detail", "")).strip()
+            lines.append(f"| `{item_name}` | {detail} |")
+        lines.append("")
+
+    # --- Diagram ---
+    if diagram:
+        lines.append("```mermaid")
+        lines.append(textwrap.dedent(diagram).strip())
+        lines.append("```")
+        lines.append("")
+
+    # --- Code patterns ---
+    if patterns:
+        for pat in patterns:
+            name = str(pat.get("name", "")).strip()
+            lang = str(pat.get("language", "")).strip() or "typescript"
+            code = str(pat.get("code", "")).strip()
+            if name:
+                lines.append(f"### {name}")
+                lines.append("")
+            lines.append(f"```{lang}")
+            lines.append(textwrap.dedent(code).strip())
+            lines.append("```")
+            lines.append("")
+
+    # --- Discoveries ---
+    if discoveries:
+        for d in discoveries:
+            lines.append("> [!info] Key Finding")
+            for dline in textwrap.wrap(d, width=100):
+                lines.append(f"> {dline}")
+            lines.append("")
+
+    # --- Tips ---
+    if tips:
+        for t in tips:
+            lines.append("> [!tip] Best Practice")
+            for tline in textwrap.wrap(t, width=100):
+                lines.append(f"> {tline}")
+            lines.append("")
+
+    # --- Warnings ---
+    if warnings:
+        for w in warnings:
+            lines.append("> [!warning] Watch out")
+            for wline in textwrap.wrap(w, width=100):
+                lines.append(f"> {wline}")
+            lines.append("")
+
+    # --- Open questions ---
+    if questions:
+        for q in questions:
+            lines.append("> [!question] To Investigate")
+            for qline in textwrap.wrap(q, width=100):
+                lines.append(f"> {qline}")
+            lines.append("")
+
+    # --- Task list ---
+    if tasks:
+        lines.append("## To Do")
+        lines.append("")
+        for t in tasks:
+            lines.append(f"- [ ] {t}")
+        lines.append("")
+
+    brain = _brain_dir(cwd)
+    brain.mkdir(parents=True, exist_ok=True)
+    p = brain / f"{slug}.md"
+    fm = f"---\ntags: [{project}, brain, {slug}]\n---\n"
+    p.write_text(fm + "\n".join(lines))
+    return f"Brain updated → {p.relative_to(VAULT_PATH)}"
+
+
+@mcp.tool()
+def get_knowledge(cwd: str, topic: str = "") -> str:
+    """Read a brain knowledge note for this project.
+
+    Args:
+        cwd: Absolute path of the working directory
+        topic: Topic name to retrieve (leave empty to list all available topics)
+    """
+    if not topic:
+        return list_knowledge(cwd)
+    slug = _slugify(topic)
+    p = _brain_dir(cwd) / f"{slug}.md"
+    if not p.exists():
+        return f"No brain note for topic '{topic}'. Use list_knowledge to see available topics."
+    return p.read_text(errors="replace")
+
+
+@mcp.tool()
+def list_knowledge(cwd: str) -> str:
+    """List all brain knowledge topics for this project.
+
+    Args:
+        cwd: Absolute path of the working directory
+    """
+    brain = _brain_dir(cwd)
+    if not brain.exists():
+        return "No brain notes yet. Use save_knowledge to start building the project brain."
+    files = sorted(brain.glob("*.md"))
+    if not files:
+        return "No brain notes yet. Use save_knowledge to start building the project brain."
+    rows = []
+    for f in files:
+        topic = f.stem
+        content = f.read_text(errors="replace")
+        _, body = _parse_frontmatter(content)
+        first_line = next((l.strip() for l in body.splitlines() if l.strip() and not l.startswith('#')), "")
+        heading = next((l.lstrip('#').strip() for l in body.splitlines() if l.startswith('#')), "")
+        desc = heading or first_line or "—"
+        rows.append(f"  {topic:<20} {desc[:70]}")
+    header = f"Brain topics for {Path(cwd).name}:"
+    return header + "\n" + "\n".join(rows)
 
 
 @mcp.tool()
 def set_next_steps(cwd: str, steps: str) -> str:
-    """Update the Next Steps section of the project note.
+    """Update the Next Steps section of the project README.
     Call this at the end of a session so the next session knows what to pick up.
 
     Args:
         cwd: Absolute path of the working directory
         steps: Markdown list of next steps (will replace existing Next Steps section)
     """
-    p = _project_note_path(cwd)
-    if not p.exists():
-        return f"No project note for '{Path(cwd).name}'. Run session_start first."
-
-    existing = p.read_text(errors="replace")
+    readme = _project_note_path(cwd)
+    if not readme.exists():
+        return f"No project README for '{Path(cwd).name}'. Run session_start first."
+    existing = readme.read_text(errors="replace")
     updated = _update_section(existing, "## Next Steps", steps)
-    p.write_text(updated)
-    return f"Next steps updated → {p.relative_to(VAULT_PATH)}"
+    readme.write_text(updated)
+    return f"Next steps updated → {readme.relative_to(VAULT_PATH)}"
 
 
 @mcp.tool()
 def set_project_context(cwd: str, context: str) -> str:
-    """Update the Context section of the project note (what this project is, stack, goals).
+    """Update the Context section of the project README (what this project is, stack, goals).
 
     Args:
         cwd: Absolute path of the working directory
         context: Markdown description of the project
     """
-    p = _project_note_path(cwd)
-    if not p.exists():
-        return f"No project note for '{Path(cwd).name}'. Run session_start first."
-
-    existing = p.read_text(errors="replace")
+    readme = _project_note_path(cwd)
+    if not readme.exists():
+        return f"No project README for '{Path(cwd).name}'. Run session_start first."
+    existing = readme.read_text(errors="replace")
     updated = _update_section(existing, "## Context", context)
-    p.write_text(updated)
-    return f"Context updated → {p.relative_to(VAULT_PATH)}"
+    readme.write_text(updated)
+    return f"Context updated → {readme.relative_to(VAULT_PATH)}"
 
 
 # ---------------------------------------------------------------------------
-# General vault tools (kept from obsidian-mcp)
+# General vault tools
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
@@ -264,7 +619,7 @@ def read_note(name: str) -> str:
     """Read the full content of a note.
 
     Args:
-        name: Note path relative to vault root (e.g. "Projects/sana.md")
+        name: Note path relative to vault root (e.g. "twin/Desktop/dev/sana/sessions/2026-05-05")
     """
     p = _resolve(name)
     if not p.exists():
@@ -304,7 +659,6 @@ def edit_note(name: str, content: str) -> str:
     p = _resolve(name)
     if not p.exists():
         return f"Note not found: {name}"
-    # Unescape literal \n sequences that models sometimes emit
     content = content.replace('\\n', '\n').replace('\\t', '\t')
     p.write_text(content)
     return f"Updated: {p.relative_to(VAULT_PATH)}"
@@ -392,7 +746,8 @@ def list_tags() -> str:
         fm_tags = fm.get("tags", []) if isinstance(fm.get("tags"), list) else []
         inline = re.findall(r'(?:^|\s)#([a-zA-Z][\w/-]*)', body)
         for t in set(fm_tags) | set(inline):
-            tag_counts[t] = tag_counts.get(t, 0) + 1
+            tag_counts[t] = tag_counts.get(t) or 0
+            tag_counts[t] += 1
     if not tag_counts:
         return "No tags found"
     return "\n".join(f"#{t} ({c})" for t, c in sorted(tag_counts.items(), key=lambda x: -x[1]))

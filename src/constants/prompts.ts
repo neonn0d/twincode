@@ -704,13 +704,17 @@ export async function computeSimpleEnvInfo(
 
       // Directly read the project note and inject it — guaranteed context,
       // no reliance on twin remembering to call get_project_context.
-      const { existsSync, readFileSync } = require('fs')
+      const { existsSync, readFileSync, readdirSync } = require('fs')
       const { join, basename } = require('path')
       const cwd = process.env.PWD || process.cwd()
       const projectName = basename(cwd)
 
       let projectNote: string | null = null
+      const home = require('os').homedir()
+      let rel: string
+      try { rel = require('path').relative(home, cwd) } catch { rel = projectName }
       const candidates = [
+        join(vault, 'twin', rel, 'README.md'),
         join(vault, 'twin', `${projectName}.md`),
         join(vault, 'Projects', `${projectName}.md`),
       ]
@@ -723,12 +727,47 @@ export async function computeSimpleEnvInfo(
         }
       }
 
-      const mcpInstructions = `You have access to the twin-memory MCP server (Obsidian vault: ${vault}). Use update_progress when something important happens, set_next_steps and session_end at the end of a session.`
-
-      if (projectNote) {
-        return `${mcpInstructions}\n\n## Project context from previous sessions (${projectName})\n\n${projectNote}`
+      // Inject today's session file (cap at 3000 chars — most recent is most relevant)
+      const SESSION_CAP = 3000
+      const BRAIN_TOPIC_CAP = 1500
+      const today = new Date().toISOString().slice(0, 10)
+      const sessionFilePath = join(vault, 'twin', rel, 'sessions', `${today}.md`)
+      let todayNote: string | null = null
+      if (existsSync(sessionFilePath)) {
+        try {
+          const raw = readFileSync(sessionFilePath, 'utf8').trim()
+          todayNote = raw.length > SESSION_CAP ? '…' + raw.slice(-SESSION_CAP) : raw
+        } catch {}
       }
-      return mcpInstructions
+
+      // Inject brain/ knowledge notes (cap each topic to avoid runaway growth)
+      const brainDir = join(vault, 'twin', rel, 'brain')
+      const brainParts: string[] = []
+      if (existsSync(brainDir)) {
+        try {
+          const brainFiles = readdirSync(brainDir)
+            .filter((f: string) => f.endsWith('.md'))
+            .sort() as string[]
+          for (const f of brainFiles) {
+            const topic = f.replace('.md', '')
+            try {
+              const raw = readFileSync(join(brainDir, f), 'utf8').trim()
+              const brainContent = raw.length > BRAIN_TOPIC_CAP
+                ? raw.slice(0, BRAIN_TOPIC_CAP) + '\n…(truncated — use get_knowledge for full note)'
+                : raw
+              if (brainContent) brainParts.push(`## Brain: ${topic}\n\n${brainContent}`)
+            } catch {}
+          }
+        } catch {}
+      }
+
+      const mcpInstructions = `twin-memory MCP connected (vault: ${vault}). Brain notes below (\`## Brain: <topic>\`) = persistent project knowledge built by /twinit — read before re-scanning files. Session log below = today's work. Cross-link: brain updates cite session date, session logs cite brain topics touched. /save → call log_session only.`
+
+      const parts = [mcpInstructions]
+      if (projectNote) parts.push(`## Project memory (${projectName})\n\n${projectNote}`)
+      if (todayNote) parts.push(`## Today's sessions (${today})\n\n${todayNote}`)
+      parts.push(...brainParts)
+      return parts.length > 1 ? parts.join('\n\n') : mcpInstructions
     })(),
   ].filter(item => item !== null)
 

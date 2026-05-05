@@ -142,10 +142,11 @@ function registerMcpServer(vaultPath) {
     args: [MCP_SERVER_PATH],
     env: { OBSIDIAN_VAULT: vaultPath },
     alwaysAllow: [
-      'get_project_context', 'session_start', 'session_end', 'update_progress',
-      'set_next_steps', 'set_project_context', 'list_notes', 'read_note',
-      'create_note', 'edit_note', 'append_to_note', 'search_notes',
-      'daily_note', 'list_tags', 'list_folders', 'move_note', 'note_info', 'delete_note',
+      'get_project_context', 'log_session', 'set_next_steps', 'set_project_context',
+      'save_knowledge', 'get_knowledge', 'list_knowledge',
+      'list_notes', 'read_note', 'create_note', 'edit_note', 'append_to_note',
+      'search_notes', 'daily_note', 'list_tags', 'list_folders', 'move_note',
+      'note_info', 'delete_note',
     ],
   }
   writeFileSync(TWIN_JSON_PATH, JSON.stringify(config, null, 2))
@@ -297,11 +298,12 @@ async function runOnboarding() {
     permissions: {
       allow: [
         'mcp__twin-memory__get_project_context',
-        'mcp__twin-memory__session_start',
-        'mcp__twin-memory__session_end',
-        'mcp__twin-memory__update_progress',
+        'mcp__twin-memory__log_session',
         'mcp__twin-memory__set_next_steps',
         'mcp__twin-memory__set_project_context',
+        'mcp__twin-memory__save_knowledge',
+        'mcp__twin-memory__get_knowledge',
+        'mcp__twin-memory__list_knowledge',
         'mcp__twin-memory__list_notes',
         'mcp__twin-memory__read_note',
         'mcp__twin-memory__create_note',
@@ -338,15 +340,17 @@ if (existsSync(SETTINGS_PATH)) {
   try {
     const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
     const required = [
-      'mcp__twin-memory__get_project_context', 'mcp__twin-memory__session_start',
-      'mcp__twin-memory__session_end', 'mcp__twin-memory__update_progress',
+      'mcp__twin-memory__get_project_context', 'mcp__twin-memory__log_session',
       'mcp__twin-memory__set_next_steps', 'mcp__twin-memory__set_project_context',
-      'mcp__twin-memory__list_notes', 'mcp__twin-memory__read_note',
-      'mcp__twin-memory__create_note', 'mcp__twin-memory__edit_note',
-      'mcp__twin-memory__append_to_note', 'mcp__twin-memory__search_notes',
-      'mcp__twin-memory__daily_note', 'mcp__twin-memory__list_tags',
-      'mcp__twin-memory__list_folders', 'mcp__twin-memory__move_note',
-      'mcp__twin-memory__note_info', 'mcp__twin-memory__delete_note',
+      'mcp__twin-memory__save_knowledge', 'mcp__twin-memory__get_knowledge',
+      'mcp__twin-memory__list_knowledge',
+      'mcp__twin-memory__list_notes',
+      'mcp__twin-memory__read_note', 'mcp__twin-memory__create_note',
+      'mcp__twin-memory__edit_note', 'mcp__twin-memory__append_to_note',
+      'mcp__twin-memory__search_notes', 'mcp__twin-memory__daily_note',
+      'mcp__twin-memory__list_tags', 'mcp__twin-memory__list_folders',
+      'mcp__twin-memory__move_note', 'mcp__twin-memory__note_info',
+      'mcp__twin-memory__delete_note',
     ]
     const existing = s?.permissions?.allow ?? []
     const missing = required.filter(r => !existing.includes(r))
@@ -358,19 +362,25 @@ if (existsSync(SETTINGS_PATH)) {
   } catch {}
 }
 
-// Migrate: ensure twin-memory always has alwaysAllow set
+// Migrate: ensure twin-memory alwaysAllow has all required tools (merge-missing)
 if (existsSync(TWIN_JSON_PATH)) {
   try {
     const config = JSON.parse(readFileSync(TWIN_JSON_PATH, 'utf8'))
     const server = config?.mcpServers?.['twin-memory']
-    if (server && (!server.alwaysAllow || server.alwaysAllow.length === 0)) {
-      server.alwaysAllow = [
-        'get_project_context', 'session_start', 'session_end', 'update_progress',
-        'set_next_steps', 'set_project_context', 'list_notes', 'read_note',
-        'create_note', 'edit_note', 'append_to_note', 'search_notes',
-        'daily_note', 'list_tags', 'list_folders', 'move_note', 'note_info', 'delete_note',
+    if (server) {
+      const alwaysRequired = [
+        'get_project_context', 'log_session', 'set_next_steps', 'set_project_context',
+        'save_knowledge', 'get_knowledge', 'list_knowledge',
+        'list_notes', 'read_note', 'create_note', 'edit_note', 'append_to_note',
+        'search_notes', 'daily_note', 'list_tags', 'list_folders', 'move_note',
+        'note_info', 'delete_note',
       ]
-      writeFileSync(TWIN_JSON_PATH, JSON.stringify(config, null, 2))
+      const existingAllow = server.alwaysAllow ?? []
+      const missingAllow = alwaysRequired.filter(t => !existingAllow.includes(t))
+      if (missingAllow.length > 0) {
+        server.alwaysAllow = [...existingAllow, ...missingAllow]
+        writeFileSync(TWIN_JSON_PATH, JSON.stringify(config, null, 2))
+      }
     }
   } catch {}
 }

@@ -23,8 +23,11 @@ import doctor from './commands/doctor/index.js'
 import onboardGithub from './commands/onboard-github/index.js'
 import knowledge from './commands/knowledge/index.js'
 import memory from './commands/memory/index.js'
+import save from './commands/save/index.js'
+import load from './commands/load/index.js'
+import recall from './commands/recall/index.js'
+import twinit from './commands/twinit/index.js'
 import help from './commands/help/index.js'
-import ide from './commands/ide/index.js'
 import init from './commands/init.js'
 import initVerifiers from './commands/init-verifiers.js'
 import keybindings from './commands/keybindings/index.js'
@@ -296,8 +299,8 @@ const COMMANDS = memoize((): Command[] => [
   files,
   heapDump,
   help,
-  ide,
   init,
+  twinit,
   keybindings,
   knowledge,
   lsp,
@@ -305,6 +308,9 @@ const COMMANDS = memoize((): Command[] => [
   installSlackApp,
   mcp,
   memory,
+  save,
+  load,
+  recall,
   mobile,
   model,
   onboardGithub,

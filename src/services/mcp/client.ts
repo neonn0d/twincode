@@ -2015,7 +2015,7 @@ export const fetchToolsForClient = memoizeWithLRU(
             userFacingName() {
               // Prefer title annotation if available, otherwise use tool name
               const displayName = tool.annotations?.title || tool.name
-              return `${client.name} - ${displayName} (MCP)`
+              return `${client.name} - ${displayName}`
             },
             ...(isClaudeInChromeMCPServer(client.name) &&
               (client.config.type === 'stdio' || !client.config.type)
@@ -2109,7 +2109,7 @@ export const fetchCommandsForClient = memoizeWithLRU(
           userFacingName() {
             // Use prompt.name (programmatic identifier) not prompt.title (display name)
             // to avoid spaces breaking slash command parsing
-            return `${client.name}:${prompt.name} (MCP)`
+            return `${client.name}:${prompt.name}`
           },
           argNames,
           source: 'mcp',
