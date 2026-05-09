@@ -332,6 +332,7 @@ async function runOnboarding() {
     env: providerEnv,
     permissions: {
       allow: [
+        'Read(**)',
         'mcp__twin-memory__get_project_context',
         'mcp__twin-memory__log_session',
         'mcp__twin-memory__set_next_steps',
@@ -378,6 +379,7 @@ if (existsSync(SETTINGS_PATH)) {
   try {
     const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
     const required = [
+      'Read(**)',
       'mcp__twin-memory__get_project_context', 'mcp__twin-memory__log_session',
       'mcp__twin-memory__set_next_steps', 'mcp__twin-memory__set_project_context',
       'mcp__twin-memory__save_knowledge', 'mcp__twin-memory__get_knowledge',

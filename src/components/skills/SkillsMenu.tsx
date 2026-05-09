@@ -3,7 +3,7 @@ import capitalize from 'lodash-es/capitalize.js';
 import * as React from 'react';
 import { useMemo } from 'react';
 import { type Command, type CommandBase, type CommandResultDisplay, getCommandName, type PromptCommand } from '../../commands.js';
-import { Box, Text } from '../../ink.js';
+import { Box, Text, useInput } from '../../ink.js';
 import { estimateSkillFrontmatterTokens, getSkillsPath } from '../../skills/loadSkillsDir.js';
 import { getDisplayPath } from '../../utils/file.js';
 import { formatTokens } from '../../utils/format.js';
@@ -21,6 +21,7 @@ type Props = {
     display?: CommandResultDisplay;
   }) => void;
   commands: Command[];
+  onNewSkill?: () => void;
 };
 function getSourceTitle(source: SkillSource): string {
   if (source === 'plugin') {
@@ -53,8 +54,12 @@ export function SkillsMenu(t0) {
   const $ = _c(35);
   const {
     onExit,
-    commands
+    commands,
+    onNewSkill
   } = t0;
+  useInput((input) => {
+    if (input === 'c' && onNewSkill) onNewSkill();
+  });
   let t1;
   if ($[0] !== commands) {
     t1 = commands.filter(_temp);
@@ -113,7 +118,7 @@ export function SkillsMenu(t0) {
     }
     let t4;
     if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
-      t4 = <FullWidthRow><Text dimColor={true} italic={true}><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="close" /></Text></FullWidthRow>;
+      t4 = <Box flexDirection="column"><FullWidthRow><Text dimColor={true} italic={true}><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="close" /></Text></FullWidthRow><FullWidthRow><Text color="green" bold={true}>[ c ]</Text><Text> create new skill</Text></FullWidthRow></Box>;
       $[7] = t4;
     } else {
       t4 = $[7];
@@ -210,7 +215,7 @@ export function SkillsMenu(t0) {
   }
   let t13;
   if ($[30] === Symbol.for("react.memo_cache_sentinel")) {
-    t13 = <FullWidthRow><Text dimColor={true} italic={true}><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="close" /></Text></FullWidthRow>;
+    t13 = <Box flexDirection="column"><FullWidthRow><Text dimColor={true} italic={true}><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="close" /></Text></FullWidthRow><FullWidthRow><Text color="green" bold={true}>[ c ]</Text><Text> create new skill</Text></FullWidthRow></Box>;
     $[30] = t13;
   } else {
     t13 = $[30];

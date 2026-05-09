@@ -780,11 +780,12 @@ export const getSkillDirCommands = memoize(
           ]).then(r => r.flat())
         : Promise.resolve([]),
       projectSettingsEnabled
-        ? Promise.all(
-            projectSkillsDirs.map(dir =>
+        ? Promise.all([
+            ...projectSkillsDirs.map(dir =>
               loadSkillsFromSkillsDir(dir, 'projectSettings'),
             ),
-          )
+            loadSkillsFromSkillsDir(join(cwd, '.twincode', 'skills'), 'projectSettings'),
+          ])
         : Promise.resolve([]),
       projectSettingsEnabled
         ? Promise.all(

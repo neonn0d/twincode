@@ -156,16 +156,16 @@ ${AGENT_TOOL_NAME}({
   const currentExamples = `Example usage:
 
 <example_agent_descriptions>
-"claude-code-guide": use this agent when the user asks how twin works or how to use its features
+"twin-guide": use this agent when the user asks how twin works or how to use its features
 "statusline-setup": use this agent to configure the user's twin status line setting
 </example_agent_descriptions>
 
 <example>
 user: "How do I configure twin hooks?"
 <commentary>
-This is a twin usage question, so use the claude-code-guide agent
+This is a twin usage question, so use the twin-guide agent
 </commentary>
-assistant: Uses the ${AGENT_TOOL_NAME} tool to launch the claude-code-guide agent
+assistant: Uses the ${AGENT_TOOL_NAME} tool to launch the twin-guide agent
 </example>
 
 <example>

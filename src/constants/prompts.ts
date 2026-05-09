@@ -551,6 +551,61 @@ function buildVaultInjection(): string | null {
   return parts.join('\n\n')
 }
 
+function loadSkillsSection(): string | null {
+  const { existsSync, readFileSync, readdirSync } = require('fs')
+  const { join } = require('path')
+  const home = require('os').homedir()
+  const cwd = process.env.PWD || process.cwd()
+
+  const skillsDirs = [
+    join(home, '.twincode', 'skills'),
+    join(cwd, '.twincode', 'skills'),
+  ]
+
+  const seen = new Set<string>()
+  const skills: { name: string; description: string; content: string }[] = []
+
+  for (const dir of skillsDirs) {
+    if (!existsSync(dir)) continue
+    let entries: string[]
+    try { entries = readdirSync(dir) } catch { continue }
+    for (const entry of entries) {
+      const skillFile = join(dir, entry, 'SKILL.md')
+      if (!existsSync(skillFile)) continue
+      try {
+        const raw = readFileSync(skillFile, 'utf8').trim()
+        let name = entry
+        let description = ''
+        let content = raw
+        if (raw.startsWith('---\n')) {
+          const end = raw.indexOf('\n---\n', 4)
+          if (end !== -1) {
+            const fm = raw.slice(4, end)
+            const nameLine = fm.match(/^name:\s*(.+)$/m)
+            const descLine = fm.match(/^description:\s*(.+)$/m)
+            if (nameLine) name = nameLine[1].trim()
+            if (descLine) description = descLine[1].trim()
+            content = raw.slice(end + 5).trim()
+          }
+        }
+        if (seen.has(name)) continue
+        seen.add(name)
+        skills.push({ name, description, content })
+      } catch {}
+    }
+  }
+
+  if (skills.length === 0) return null
+
+  const blocks = skills
+    .map(s =>
+      `<skill name="${s.name}"${s.description ? ` description="${s.description}"` : ''}>\n${s.content}\n</skill>`,
+    )
+    .join('\n')
+
+  return `# Available Skills\n\n<available_skills>\n${blocks}\n</available_skills>`
+}
+
 export async function getSystemPrompt(
   tools: Tools,
   model: string,
@@ -677,6 +732,7 @@ ${CYBER_RISK_INSTRUCTION}`,
       : null,
     isThirdPartyPrompt() ? getCompactActionsSection() : getActionsSection(),
     getUsingYourToolsSection(enabledTools),
+    loadSkillsSection(),
     getSimpleToneAndStyleSection(),
     isThirdPartyPrompt() ? null : getOutputEfficiencySection(),
     // === BOUNDARY MARKER - DO NOT MOVE OR REMOVE ===
