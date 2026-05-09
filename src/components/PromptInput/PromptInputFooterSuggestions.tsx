@@ -149,7 +149,7 @@ const SuggestionItemRow = memo(function SuggestionItemRow({
         {nameText}
       </Text>
       {truncatedDescription ? (
-        <Text color={textColor} dimColor={true} wrap="truncate">
+        <Text color={textColor} dimColor={!isSelected} wrap="truncate">
           {tagText}{truncatedDescription}
         </Text>
       ) : null}
