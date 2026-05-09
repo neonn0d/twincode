@@ -474,3 +474,104 @@ export const SetNextStepsTool = buildTool({
     return { tool_use_id: toolUseID, type: 'tool_result', content: result }
   },
 } satisfies ToolDef<SetNextStepsInputSchema, { result: string }>)
+
+// ─── search_knowledge ─────────────────────────────────────────────────────────
+
+const searchKnowledgeInputSchema = lazySchema(() =>
+  z.strictObject({
+    query: z.string().describe('Regex or plain text to search across all brain notes'),
+    case_sensitive: z.boolean().optional().describe('Case-sensitive search (default false)'),
+  }),
+)
+type SearchKnowledgeInputSchema = ReturnType<typeof searchKnowledgeInputSchema>
+
+export const SearchKnowledgeTool = buildTool({
+  name: 'search_knowledge',
+  searchHint: 'search all brain notes for a query',
+  maxResultSizeChars: 20_000,
+  async description() { return 'Regex search across all brain notes for the current project.' },
+  async prompt() { return 'Use search_knowledge to find something across all brain notes without knowing which topic it lives in.' },
+  get inputSchema(): SearchKnowledgeInputSchema { return searchKnowledgeInputSchema() },
+  get outputSchema() { return outputSchema() },
+  userFacingName() { return 'search_knowledge' },
+  isEnabled,
+  isReadOnly() { return true },
+  isConcurrencySafe() { return true },
+  renderToolUseMessage() { return null },
+  async checkPermissions(input) { return { behavior: 'allow', updatedInput: input } },
+  async call({ query, case_sensitive }) {
+    const vault = getVaultPath()
+    if (!vault) return { data: { result: 'No Obsidian vault configured.' } }
+    const cwd = getCwd()
+    try {
+      const brain = brainDir(vault, cwd)
+      if (!fs.existsSync(brain)) return { data: { result: `No brain notes yet.` } }
+      let pattern: RegExp
+      try { pattern = new RegExp(query, case_sensitive ? '' : 'i') }
+      catch { pattern = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), case_sensitive ? '' : 'i') }
+      const results: string[] = []
+      for (const f of fs.readdirSync(brain).filter(f => f.endsWith('.md')).sort()) {
+        const { body } = parseFrontmatter(fs.readFileSync(path.join(brain, f), 'utf8'))
+        const matches: string[] = []
+        body.split('\n').forEach((line, i) => { if (pattern.test(line)) matches.push(`  L${i + 1}: ${line.trim().slice(0, 120)}`) })
+        if (matches.length) {
+          results.push(`**${f.replace('.md', '')}** — ${matches.length} match(es):`)
+          results.push(...matches.slice(0, 5))
+          if (matches.length > 5) results.push(`  ... +${matches.length - 5} more`)
+          results.push('')
+        }
+      }
+      return { data: { result: results.length ? results.join('\n') : `No matches for '${query}'` } }
+    } catch (e) {
+      return { data: { result: `Error searching: ${e instanceof Error ? e.message : String(e)}` } }
+    }
+  },
+  mapToolResultToToolResultBlockParam({ result }, toolUseID) {
+    return { tool_use_id: toolUseID, type: 'tool_result', content: result }
+  },
+} satisfies ToolDef<SearchKnowledgeInputSchema, { result: string }>)
+
+// ─── delete_knowledge ─────────────────────────────────────────────────────────
+
+const deleteKnowledgeInputSchema = lazySchema(() =>
+  z.strictObject({
+    topic: z.string().describe('Topic to delete (moved to brain/.trash/, not permanently deleted)'),
+  }),
+)
+type DeleteKnowledgeInputSchema = ReturnType<typeof deleteKnowledgeInputSchema>
+
+export const DeleteKnowledgeTool = buildTool({
+  name: 'delete_knowledge',
+  searchHint: 'move a brain note to trash',
+  maxResultSizeChars: 500,
+  async description() { return 'Move a brain note to brain/.trash/ (recoverable).' },
+  async prompt() { return 'Use delete_knowledge to remove a stale or wrong brain note. It goes to .trash/, not permanently deleted.' },
+  get inputSchema(): DeleteKnowledgeInputSchema { return deleteKnowledgeInputSchema() },
+  get outputSchema() { return outputSchema() },
+  userFacingName() { return 'delete_knowledge' },
+  isEnabled,
+  isReadOnly() { return false },
+  isConcurrencySafe() { return false },
+  renderToolUseMessage() { return null },
+  async checkPermissions(input) { return { behavior: 'allow', updatedInput: input } },
+  async call({ topic }) {
+    const vault = getVaultPath()
+    if (!vault) return { data: { result: 'No Obsidian vault configured.' } }
+    const cwd = getCwd()
+    try {
+      const slug = slugify(topic)
+      const brain = brainDir(vault, cwd)
+      const p = path.join(brain, `${slug}.md`)
+      if (!fs.existsSync(p)) return { data: { result: `No brain note for '${topic}'` } }
+      const trash = path.join(brain, '.trash')
+      fs.mkdirSync(trash, { recursive: true })
+      fs.renameSync(p, path.join(trash, `${slug}.md`))
+      return { data: { result: `Brain note '${topic}' moved to trash` } }
+    } catch (e) {
+      return { data: { result: `Error deleting: ${e instanceof Error ? e.message : String(e)}` } }
+    }
+  },
+  mapToolResultToToolResultBlockParam({ result }, toolUseID) {
+    return { tool_use_id: toolUseID, type: 'tool_result', content: result }
+  },
+} satisfies ToolDef<DeleteKnowledgeInputSchema, { result: string }>)

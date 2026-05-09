@@ -69,6 +69,8 @@ import {
   GetProjectContextTool,
   SetProjectContextTool,
   SetNextStepsTool,
+  SearchKnowledgeTool,
+  DeleteKnowledgeTool,
 } from './tools/MemoryTool/MemoryTool.js'
 import { LSPTool } from './tools/LSPTool/LSPTool.js'
 import { ListMcpResourcesTool } from './tools/ListMcpResourcesTool/ListMcpResourcesTool.js'
@@ -246,6 +248,8 @@ export function getAllBaseTools(): Tools {
     GetProjectContextTool,
     SetProjectContextTool,
     SetNextStepsTool,
+    SearchKnowledgeTool,
+    DeleteKnowledgeTool,
     ListMcpResourcesTool,
     ReadMcpResourceTool,
     // Include ToolSearchTool when tool search might be enabled (optimistic check)
