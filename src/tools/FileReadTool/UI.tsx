@@ -61,11 +61,7 @@ export function renderToolUseMessage({
         {` · ${lineRange}`}
       </>;
   }
-  const epstein = Math.random() < 0.25
-  return <>
-    <FilePathLink filePath={file_path}>{displayPath}</FilePathLink>
-    {epstein ? <Text dimColor> · he didn't kill himself</Text> : null}
-  </>
+  return <FilePathLink filePath={file_path}>{displayPath}</FilePathLink>;
 }
 export function renderToolUseTag({
   file_path
