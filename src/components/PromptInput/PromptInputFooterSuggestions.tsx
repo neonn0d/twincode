@@ -118,7 +118,7 @@ const SuggestionItemRow = memo(function SuggestionItemRow({
     )
   }
 
-  const maxNameWidth = Math.floor(columns * 0.4)
+  const maxNameWidth = Math.floor(columns * 0.35)
   const displayTextWidth = Math.min(
     maxColumnWidth ?? stringWidth(item.displayText) + 5,
     maxNameWidth,
@@ -129,7 +129,7 @@ const SuggestionItemRow = memo(function SuggestionItemRow({
     displayText = truncateToWidth(displayText, displayTextWidth - 2)
   }
 
-  const paddedDisplayText =
+  const nameText =
     selectionPrefix +
     displayText +
     ' '.repeat(Math.max(0, displayTextWidth - stringWidth(displayText)))
@@ -142,18 +142,17 @@ const SuggestionItemRow = memo(function SuggestionItemRow({
   const truncatedDescription = item.description
     ? truncateToWidth(item.description.replace(/\s+/g, ' '), descriptionWidth)
     : ''
-  const lineContent = `${paddedDisplayText}${tagText}${truncatedDescription}`
 
   return (
-    <Box width="100%" opaque={true} backgroundColor={rowBackgroundColor}>
-      <Text
-        color={textColor}
-        dimColor={!isSelected}
-        bold={isSelected}
-        wrap="truncate"
-      >
-        {lineContent}
+    <Box width="100%" opaque={true} backgroundColor={rowBackgroundColor} flexDirection="row">
+      <Text color={textColor} dimColor={!isSelected} bold={isSelected} wrap="truncate">
+        {nameText}
       </Text>
+      {truncatedDescription ? (
+        <Text color={textColor} dimColor={true} wrap="truncate">
+          {tagText}{truncatedDescription}
+        </Text>
+      ) : null}
     </Box>
   )
 })
