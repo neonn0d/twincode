@@ -496,7 +496,6 @@ function buildVaultInjection(): string | null {
 
   const SESSION_CAP = 3000
   const YESTERDAY_CAP = 1500
-  const BRAIN_TOPIC_CAP = 1500
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
   const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10)
@@ -522,31 +521,33 @@ function buildVaultInjection(): string | null {
   }
 
   const brainDir = join(vault, 'twincode', rel, 'brain')
-  const brainParts: string[] = []
+  let brainIndex: string | null = null
   if (existsSync(brainDir)) {
     try {
       const brainFiles = readdirSync(brainDir)
-        .filter((f: string) => f.endsWith('.md'))
+        .filter((f: string) => f.endsWith('.md') && !f.startsWith('.'))
         .sort() as string[]
-      for (const f of brainFiles) {
-        const topic = f.replace('.md', '')
-        try {
-          const raw = readFileSync(join(brainDir, f), 'utf8').trim()
-          const brainContent = raw.length > BRAIN_TOPIC_CAP
-            ? raw.slice(0, BRAIN_TOPIC_CAP) + '\n…(truncated — use get_knowledge for full note)'
-            : raw
-          if (brainContent) brainParts.push(`## Brain: ${topic}\n\n${brainContent}`)
-        } catch {}
+      if (brainFiles.length) {
+        const rows = brainFiles.map((f: string) => {
+          const topic = f.replace('.md', '')
+          try {
+            const raw = readFileSync(join(brainDir, f), 'utf8')
+            const body = raw.startsWith('---\n') ? raw.slice(raw.indexOf('\n---\n') + 5) : raw
+            const desc = body.split('\n').find((l: string) => l.trim() && !l.startsWith('#'))?.trim().slice(0, 60) || ''
+            return `  ${topic.padEnd(18)} ${desc}`
+          } catch { return `  ${topic}` }
+        })
+        brainIndex = `Brain topics (use get_knowledge to read):\n${rows.join('\n')}`
       }
     } catch {}
   }
 
-  const mcpInstructions = `Vault: ${vault}. Brain notes below (\`## Brain: <topic>\`) = persistent project knowledge built by /twinit — read before re-scanning files. Session log = today's work (or yesterday's if today hasn't started). /save → call log_session. No cwd arg needed — tools use current directory automatically.`
+  const mcpInstructions = `Vault connected. Session log = today's work. /save → call log_session. Use get_knowledge to read brain notes. No cwd arg needed.`
   const parts = [mcpInstructions]
   if (projectNote) parts.push(`## Project memory (${projectName})\n\n${projectNote}`)
   if (todayNote) parts.push(`## Today's sessions (${today})\n\n${todayNote}`)
   else if (yesterdayNote) parts.push(`## Yesterday's session (${yesterday})\n\n${yesterdayNote}`)
-  parts.push(...brainParts)
+  if (brainIndex) parts.push(brainIndex)
   return parts.join('\n\n')
 }
 
