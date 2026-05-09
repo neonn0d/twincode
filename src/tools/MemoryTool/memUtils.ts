@@ -24,7 +24,7 @@ export function projectNotePath(vaultPath: string, cwd: string): string {
   for (const legacy of [
     path.join(vaultPath, 'twincode', `${name}.md`),
     path.join(vaultPath, 'twincode', name, 'README.md'),
-    path.join(vaultPath, 'twin', rel(vaultPath, cwd), 'README.md'),
+    path.join(vaultPath, 'twin', relPath(cwd), 'README.md'),
   ]) {
     if (fs.existsSync(legacy)) {
       fs.mkdirSync(path.dirname(target), { recursive: true })
@@ -35,7 +35,7 @@ export function projectNotePath(vaultPath: string, cwd: string): string {
   return target
 }
 
-function rel(vaultPath: string, cwd: string): string {
+function relPath(cwd: string): string {
   const home = os.homedir()
   let r: string
   try { r = path.relative(home, cwd) } catch { r = path.basename(cwd) }
