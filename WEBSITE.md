@@ -13,8 +13,6 @@
 
 ## Color palette
 
-Use these exact colors — pulled straight from the terminal:
-
 | Role | Hex | Usage |
 |---|---|---|
 | Background | `#0d1117` | page background, dark |
@@ -27,8 +25,6 @@ Use these exact colors — pulled straight from the terminal:
 
 Font: any monospace — `JetBrains Mono`, `Fira Code`, `monospace` fallback.
 
-The vibe is the terminal itself: dark background, that specific blue, everything else muted.
-
 AI coding agent. Your terminal. DeepSeek.
 
 `npm install && twin`
@@ -39,7 +35,7 @@ AI coding agent. Your terminal. DeepSeek.
 
 Claude Code, but running on DeepSeek. Same workflow, fraction of the cost.
 
-You get file editing, bash execution, agents, MCP servers, and slash commands — all in your terminal, all on your own API key.
+You get file editing, bash execution, agents, MCP servers, skills, and slash commands — all in your terminal, all on your own API key.
 
 No subscription. No cloud account. Just paste your key and go.
 
@@ -49,7 +45,7 @@ No subscription. No cloud account. Just paste your key and go.
 
 DeepSeek v4 Pro is genuinely good at code. And unlike the hosted options, you're paying per token — not a monthly flat rate for something you might use three times a week.
 
-twin is the wrapper that makes DeepSeek feel like a proper coding agent instead of a chat window.
+TwinCode is the wrapper that makes DeepSeek feel like a proper coding agent instead of a chat window.
 
 ---
 
@@ -60,7 +56,15 @@ twin is the wrapper that makes DeepSeek feel like a proper coding agent instead 
 - **deepseek-chat** — cheap and quick
 - **deepseek-reasoner** — thinks before it answers
 
-Switch anytime with `/key` or pick during setup.
+Switch anytime with `/model` or pick during setup.
+
+---
+
+## Skills
+
+Teach twin how you work. Drop a markdown file in `.twincode/skills/` and twin loads it automatically — no slash command needed.
+
+Write it once, use it everywhere.
 
 ---
 
@@ -75,10 +79,9 @@ No more re-explaining the project every time you open a new terminal.
 ## Install
 
 ```bash
-git clone https://github.com/neonn0d/twin
-cd twin
-npm install && npm run build
-ln -s $(pwd)/bin/twin /usr/local/bin/twin
+git clone https://github.com/neonn0d/twincode
+cd twincode
+npm install && npm run build && npm link
 twin
 ```
 

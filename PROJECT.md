@@ -1,8 +1,8 @@
-# Twin — Project Overview
+# TwinCode — Project Overview
 
-## What is Twin?
+## What is TwinCode?
 
-Twin is an open-source AI coding agent that runs entirely in your terminal. It is a fork of Claude Code (Anthropic's official CLI) rewired to run on the **DeepSeek API** — giving you a powerful, autonomous coding agent at a fraction of the cost.
+TwinCode is an open-source AI coding agent that runs in your terminal. It is a fork of Claude Code (Anthropic's official CLI) rewired to run on the **DeepSeek API** — giving you a powerful, autonomous coding agent at a fraction of the cost.
 
 You talk to it like a developer. It reads your code, edits files, runs commands, fixes bugs, and works through complex tasks autonomously.
 
@@ -12,18 +12,18 @@ You talk to it like a developer. It reads your code, edits files, runs commands,
 
 ### Architecture
 
-Twin is built on top of the Claude Code engine — the same battle-tested agentic loop that powers Anthropic's own CLI. The engine handles:
+TwinCode is built on top of the Claude Code engine. The engine handles:
 
 - Reading and editing files across the entire codebase
 - Running shell commands and interpreting their output
 - Managing conversation context and tool use
 - Permission and safety controls
 
-Twin replaces Claude (the model) with **DeepSeek** by routing all API calls through DeepSeek's OpenAI-compatible endpoint (`api.deepseek.com/v1`). The engine stays the same. The model changes.
+TwinCode replaces Claude (the model) with **DeepSeek** by routing all API calls through DeepSeek's OpenAI-compatible endpoint (`api.deepseek.com/v1`). The engine stays the same. The model changes.
 
 ### Model Routing
 
-Twin sets `CLAUDE_CODE_USE_OPENAI=1` and points `OPENAI_BASE_URL` to DeepSeek's API. This activates the OpenAI-compatible provider path inside the engine, which uses `OPENAI_MODEL` to select the active model. All of this is configured automatically on first run.
+TwinCode sets `CLAUDE_CODE_USE_OPENAI=1` and points `OPENAI_BASE_URL` to DeepSeek's API. This activates the OpenAI-compatible provider path inside the engine. When this flag is active, a lean system prompt is used instead of the full one to reduce token usage with smaller models.
 
 ### Supported Models
 
@@ -33,8 +33,6 @@ Twin sets `CLAUDE_CODE_USE_OPENAI=1` and points `OPENAI_BASE_URL` to DeepSeek's 
 | `deepseek-v4-flash` | Fast version of v4 |
 | `deepseek-chat` | Fast and cheap, everyday use |
 | `deepseek-reasoner` | Thinks step by step, best for hard problems |
-
-You can switch models anytime with `/model` inside a session. Your choice persists across restarts.
 
 ---
 
@@ -46,45 +44,49 @@ You can switch models anytime with `/model` inside a session. Your choice persis
 - **Autonomous multi-step tasks** — works through complex problems without hand-holding
 - **Codebase-wide context** — understands your entire project structure
 
+### Skills System
+TwinCode has a pi-agent style skills system. Skills are markdown files in `.twincode/skills/` (project) or `~/.twincode/skills/` (global). Each skill is a folder with a `SKILL.md` file containing frontmatter (`name`, `description`) and instruction content.
+
+At startup, all skills are injected into the system prompt as `<available_skills>` XML — the model sees them automatically and applies the right one when the task matches.
+
+Manage skills via the `/skills` menu (browse, create with AI, edit, delete).
+
 ### Memory (Obsidian Integration)
-Twin has an optional memory layer powered by an MCP (Model Context Protocol) server that reads and writes to an **Obsidian vault**. This gives Twin persistent memory across sessions:
+TwinCode has an optional memory layer powered by an MCP server that reads and writes to an **Obsidian vault**. This gives TwinCode persistent memory across sessions:
 
-- Session context (what you're working on, current state)
-- Project notes and documentation
-- Next steps and progress tracking
-- Full note management (create, edit, search, organize)
+- Session context and notes
+- Project README auto-loaded at startup
+- Brain knowledge base (persistent notes per topic)
+- Full note management via native twin MCP tools
 
-The MCP server (`mcp/twin-memory.py`) runs as a subprocess and communicates via stdio. It is configured automatically during onboarding if you have Obsidian installed.
+### Agents
+Create specialized subagents that TwinCode can delegate to. Agents live in `.twincode/agents/`. Built-in agents (Explore, Plan, twin-guide, etc.) are always available.
 
 ### Slash Commands
-Twin exposes a rich set of slash commands inside the interactive session:
 
 | Command | Description |
 |---|---|
+| `/skills` | Browse, create, edit, delete skills |
+| `/agents` | Browse and create custom subagents |
 | `/model` | Switch AI model |
 | `/compact` | Compress conversation context |
-| `/review` | Review current code changes |
-| `/commit` | Commit changes with AI message |
-| `/branch` | Create a branch from current work |
 | `/plan` | Enter planning mode |
-| `/status` | Show session status |
-| `/exit` | End session |
-
-And many more — type `/` to see all available commands.
+| `/save` | Log current session to Obsidian |
+| `/key <key>` | Update your DeepSeek API key |
 
 ---
 
 ## Setup & Configuration
 
 ### First Run
-On first launch, Twin runs an interactive onboarding wizard that:
+On first launch, TwinCode runs an interactive onboarding wizard that:
 1. Prompts for your DeepSeek API key
 2. Lets you pick a default model
 3. Detects your Obsidian vault and sets up memory (optional)
 
-All settings are saved to `~/.twin/settings.json`.
+All settings are saved to `~/.twincode/settings.json`.
 
-### Settings File (`~/.twin/settings.json`)
+### Settings File (`~/.twincode/settings.json`)
 ```json
 {
   "model": "deepseek-v4-flash",
@@ -94,34 +96,44 @@ All settings are saved to `~/.twin/settings.json`.
     "OPENAI_MODEL": "deepseek-v4-flash"
   },
   "obsidianVault": "/path/to/your/vault",
-  "permissions": { ... }
+  "permissions": { "allow": ["Read(**)", "mcp__twin__*"] }
 }
 ```
 
-### MCP Config (`~/.twin.json`)
-Stores MCP server configurations. Twin automatically registers the `twin-memory` server here during onboarding.
+### MCP Config (`~/.twincode.json`)
+Stores MCP server configurations. TwinCode automatically registers the `twin` MCP server here during onboarding.
 
 ---
 
 ## Project Structure
 
 ```
-twin/
+twincode/
 ├── bin/
-│   └── twin              # Entry point — onboarding, env setup, launches engine
+│   └── twin              # Entry point — onboarding, permissions, env setup, launches engine
 ├── src/
-│   ├── screens/
-│   │   └── REPL.tsx      # Main interactive session UI
-│   ├── commands/         # All slash commands (/model, /exit, /plan, etc.)
-│   ├── components/       # UI components (Ink/React terminal renderer)
-│   ├── utils/            # Model resolution, settings, auth, etc.
-│   └── state/            # App state management
-├── mcp/
-│   ├── twin-memory.py    # Obsidian MCP server
-│   └── session-context.py
+│   ├── commands/
+│   │   ├── skills/       # /skills command → SkillsManager CRUD TUI
+│   │   ├── skill-new/    # /skill-new command — AI skill generation
+│   │   └── agents/       # /agents command
+│   ├── components/
+│   │   ├── skills/
+│   │   │   ├── SkillsManager.tsx  # Full CRUD skills TUI (list/create/delete/edit)
+│   │   │   └── generateSkill.ts   # AI skill content generation
+│   │   └── agents/
+│   │       ├── AgentsList.tsx
+│   │       └── generateAgent.ts
+│   ├── constants/
+│   │   └── prompts.ts    # System prompt builder — skill injection, vault injection
+│   ├── keybindings/
+│   │   └── defaultBindings.ts  # Keyboard shortcut map
+│   ├── skills/
+│   │   └── loadSkillsDir.ts    # Disk scanner for SKILL.md files
+│   └── tools/
+│       └── AgentTool/built-in/ # Built-in agents (twin-guide, Explore, Plan, etc.)
 ├── dist/
 │   └── cli.mjs           # Built output (run `npm run build`)
-└── web.md                # Website content
+└── README.md
 ```
 
 ---
@@ -129,13 +141,8 @@ twin/
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Build
-npm run build
-
-# Run locally
+npm run build   # always run from /path/to/twincode after source changes
 ./bin/twin
 ```
 
@@ -151,7 +158,7 @@ Built with **Bun** + **TypeScript**. UI rendered with **Ink** (React for termina
 | Build | Bun |
 | Terminal UI | Ink (React) |
 | AI Provider | DeepSeek API (OpenAI-compatible) |
-| Memory | Obsidian + MCP (Python) |
+| Memory | Obsidian + MCP (twin MCP server) |
 | Base | Claude Code (forked) |
 
 ---
@@ -159,5 +166,6 @@ Built with **Bun** + **TypeScript**. UI rendered with **Ink** (React for termina
 ## Links
 
 - Website: [twincode.wtf](https://twincode.wtf)
+- Repo: [github.com/neonn0d/twincode](https://github.com/neonn0d/twincode)
 - DeepSeek API: [platform.deepseek.com](https://platform.deepseek.com)
 - Built by [@neonn0d](https://github.com/neonn0d)
