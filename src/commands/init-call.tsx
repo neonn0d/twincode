@@ -3,15 +3,15 @@ import { maybeMarkProjectOnboardingComplete } from '../projectOnboardingState.js
 import type { LocalJSXCommandCall } from '../types/command.js'
 import { isNewInitEnabled } from './initMode.js'
 
-const OLD_INIT_PROMPT = `Please analyze this codebase and create a TWIN.md file, which will be given to future instances of twin to operate in this repository.
+const OLD_INIT_PROMPT = `Please analyze this codebase and create a TWINCODE.md file, which will be given to future instances of twincode to operate in this repository.
 
 What to add:
 1. Commands that will be commonly used, such as how to build, lint, and run tests. Include the necessary commands to develop in this codebase, such as how to run a single test.
 2. High-level code architecture and structure so that future instances can be productive more quickly. Focus on the "big picture" architecture that requires reading multiple files to understand.
 
 Usage notes:
-- If there's already a TWIN.md, suggest improvements to it.
-- When you make the initial TWIN.md, do not repeat yourself and do not include obvious instructions like "Provide helpful error messages to users", "Write unit tests for all new utilities", "Never include sensitive information (API keys, tokens) in code or commits".
+- If there's already a TWINCODE.md, suggest improvements to it.
+- When you make the initial TWINCODE.md, do not repeat yourself and do not include obvious instructions like "Provide helpful error messages to users", "Write unit tests for all new utilities", "Never include sensitive information (API keys, tokens) in code or commits".
 - Avoid listing every component or file structure that can be easily discovered.
 - Don't include generic development practices.
 - If there are Cursor rules (in .cursor/rules/ or .cursorrules) or Copilot rules (in .github/copilot-instructions.md), make sure to include the important parts.
@@ -20,12 +20,12 @@ Usage notes:
 - Be sure to prefix the file with the following text:
 
 \`\`\`
-# TWIN.md
+# TWINCODE.md
 
-This file provides guidance to twin when working with code in this repository.
+This file provides guidance to twincode when working with code in this repository.
 \`\`\``
 
-const NEW_INIT_PROMPT = `Set up a minimal TWIN.md (and optionally skills and hooks) for this repo. The root project instruction file is loaded into every twin session, so it must be concise — only include what Claude would get wrong without it.
+const NEW_INIT_PROMPT = `Set up a minimal TWINCODE.md (and optionally skills and hooks) for this repo. The root project instruction file is loaded into every twincode session, so it must be concise — only include what Claude would get wrong without it.
 
 ## Phase 1: Ask what to set up
 
@@ -38,7 +38,7 @@ Use AskUserQuestion to find out what the user wants:
 
 ## Phase 2: Explore the codebase
 
-Launch a subagent to survey the codebase, and ask it to read key files to understand the project: manifest files (package.json, Cargo.toml, pyproject.toml, go.mod, pom.xml, etc.), README, Makefile/build configs, CI config, existing TWIN.md, CLAUDE.md, .claude/rules/, .cursor/rules or .cursorrules, .github/copilot-instructions.md, .windsurfrules, .clinerules, .mcp.json.
+Launch a subagent to survey the codebase, and ask it to read key files to understand the project: manifest files (package.json, Cargo.toml, pyproject.toml, go.mod, pom.xml, etc.), README, Makefile/build configs, CI config, existing TWINCODE.md, CLAUDE.md, .claude/rules/, .cursor/rules or .cursorrules, .github/copilot-instructions.md, .windsurfrules, .clinerules, .mcp.json.
 
 Detect:
 - Build, test, and lint commands (especially non-standard ones)
@@ -48,7 +48,7 @@ Detect:
 - Non-obvious gotchas, required env vars, or workflow quirks
 - Existing .claude/skills/ and .claude/rules/ directories
 - Formatter configuration (prettier, biome, ruff, black, gofmt, rustfmt, or a unified format script like \`npm run format\` / \`make fmt\`)
-- If CLAUDE.local.md exists at the project root, read it — its contents may reveal personal preferences or local setup details worth including in TWIN.md
+- If CLAUDE.local.md exists at the project root, read it — its contents may reveal personal preferences or local setup details worth including in TWINCODE.md
 
 Note what you could NOT figure out from code alone — these become interview questions.
 
@@ -58,13 +58,13 @@ Use AskUserQuestion to gather what you still need to write good instruction file
 
 Ask about codebase practices — non-obvious commands, gotchas, branch/PR conventions, required env setup, testing quirks. Skip things already in README or obvious from manifest files. Do not mark any options as "recommended" — this is about how their team works, not best practices.
 
-**Synthesize a proposal from Phase 2 findings** — e.g., format-on-edit if a formatter exists, a project verification workflow if tests exist, a TWIN.md note for anything from the gap-fill answers that's a guideline rather than a workflow. For each, pick the artifact type that fits, **constrained by the Phase 1 skills+hooks choice**:
+**Synthesize a proposal from Phase 2 findings** — e.g., format-on-edit if a formatter exists, a project verification workflow if tests exist, a TWINCODE.md note for anything from the gap-fill answers that's a guideline rather than a workflow. For each, pick the artifact type that fits, **constrained by the Phase 1 skills+hooks choice**:
 
   - **Hook** (stricter) — deterministic shell command on a tool event; Claude can't skip it. Fits mechanical, fast, per-edit steps: formatting, linting, running a quick test on the changed file.
   - **Skill** (on-demand) — you or Claude invoke \`/skill-name\` when you want it. Fits workflows that don't belong on every edit: deep verification, session reports, deploys.
-  - **TWIN.md note** (looser) — influences Claude's behavior but not enforced. Fits communication/thinking preferences: "plan before coding", "be terse", "explain tradeoffs".
+  - **TWINCODE.md note** (looser) — influences Claude's behavior but not enforced. Fits communication/thinking preferences: "plan before coding", "be terse", "explain tradeoffs".
 
-  **Respect Phase 1's skills+hooks choice as a hard filter**: if the user picked "Skills only", downgrade any hook you'd suggest to a skill or a TWIN.md note. If "Hooks only", downgrade skills to hooks (where mechanically possible) or notes. If "Neither", everything becomes a TWIN.md note. Never propose an artifact type the user didn't opt into.
+  **Respect Phase 1's skills+hooks choice as a hard filter**: if the user picked "Skills only", downgrade any hook you'd suggest to a skill or a TWINCODE.md note. If "Hooks only", downgrade skills to hooks (where mechanically possible) or notes. If "Neither", everything becomes a TWINCODE.md note. Never propose an artifact type the user didn't opt into.
 
 **Show the proposal via AskUserQuestion's \`preview\` field, not as a separate text message** — the dialog overlays your output, so preceding text is hidden. The \`preview\` field renders markdown in a side-panel (like plan mode); the \`question\` field is plain-text-only. Structure it as:
 
@@ -74,19 +74,19 @@ Ask about codebase practices — non-obvious commands, gotchas, branch/PR conven
 
     • **Format-on-edit hook** (automatic) — \`ruff format <file>\` via PostToolUse
     • **Verification workflow** (on-demand) — \`make lint && make typecheck && make test\`
-    • **TWIN.md note** (guideline) — "run lint/typecheck/test before marking done"
+    • **TWINCODE.md note** (guideline) — "run lint/typecheck/test before marking done"
 
   - Option labels stay short ("Looks good", "Drop the hook", "Drop the skill") — the tool auto-adds an "Other" free-text option, so don't add your own catch-all.
 
 **Build the preference queue** from the accepted proposal. Each entry: {type: hook|skill|note, description, target file, any Phase-2-sourced details like the actual test/format command}. Phases 4-7 consume this queue.
 
-## Phase 4: Write TWIN.md
+## Phase 4: Write TWINCODE.md
 
-Write a minimal TWIN.md at the project root. Every line must pass this test: "Would removing this cause Claude to make mistakes?" If no, cut it.
+Write a minimal TWINCODE.md at the project root. Every line must pass this test: "Would removing this cause Claude to make mistakes?" If no, cut it.
 
 If the repo already has a checked-in root \`CLAUDE.md\` and does NOT already have a root \`AGENTS.md\`, do NOT silently create a second root instruction file. In that case, update the existing root \`CLAUDE.md\` in place by default. Only create or migrate to root \`AGENTS.md\` if the user explicitly asks to migrate.
 
-**Consume \`note\` entries from the Phase 3 preference queue whose target is TWIN.md** — add each as a concise line in the most relevant section.
+**Consume \`note\` entries from the Phase 3 preference queue whose target is TWINCODE.md** — add each as a concise line in the most relevant section.
 
 Include:
 - Build/test/lint commands Claude can't guess (non-standard scripts, flags, or sequences)
@@ -113,20 +113,20 @@ Do not repeat yourself and do not make up sections like "Common Development Task
 Prefix the file with:
 
 \`\`\`
-# TWIN.md
+# TWINCODE.md
 
-This file provides guidance to twin when working with code in this repository.
+This file provides guidance to twincode when working with code in this repository.
 \`\`\`
 
-If TWIN.md already exists: read it, propose specific changes as diffs, and explain why each change improves it. Do not silently overwrite.
+If TWINCODE.md already exists: read it, propose specific changes as diffs, and explain why each change improves it. Do not silently overwrite.
 
-For projects with multiple concerns, suggest organizing instructions into \`.claude/rules/\` as separate focused files (e.g., \`code-style.md\`, \`testing.md\`, \`security.md\`). These are loaded automatically alongside TWIN.md and can be scoped to specific file paths using \`paths\` frontmatter.
+For projects with multiple concerns, suggest organizing instructions into \`.claude/rules/\` as separate focused files (e.g., \`code-style.md\`, \`testing.md\`, \`security.md\`). These are loaded automatically alongside TWINCODE.md and can be scoped to specific file paths using \`paths\` frontmatter.
 
-For projects with distinct subdirectories (monorepos, multi-module projects, etc.): mention that subdirectory TWIN.md files can be added for module-specific instructions (they're loaded automatically when Claude works in those directories). Offer to create them if the user wants.
+For projects with distinct subdirectories (monorepos, multi-module projects, etc.): mention that subdirectory TWINCODE.md files can be added for module-specific instructions (they're loaded automatically when Claude works in those directories). Offer to create them if the user wants.
 
 ## Phase 5: Read CLAUDE.local.md (read-only)
 
-Do NOT create CLAUDE.local.md. If it already exists at the project root, read it and incorporate any relevant personal preferences or local setup details into TWIN.md. Do not modify or overwrite it.
+Do NOT create CLAUDE.local.md. If it already exists at the project root, read it and incorporate any relevant personal preferences or local setup details into TWINCODE.md. Do not modify or overwrite it.
 
 ## Phase 6: Suggest and create skills (if user chose "Skills + hooks" or "Skills only")
 
@@ -160,7 +160,7 @@ Both the user (\`/<skill-name>\`) and Claude can invoke skills by default. For w
 
 ## Phase 7: Suggest additional optimizations
 
-Tell the user you're going to suggest a few additional optimizations now that TWIN.md and skills (if chosen) are in place.
+Tell the user you're going to suggest a few additional optimizations now that TWINCODE.md and skills (if chosen) are in place.
 
 Check the environment and ask about each gap you find (use AskUserQuestion):
 
@@ -191,13 +191,13 @@ Act on each "yes" before moving on.
 
 Recap what was set up — which files were written and the key points included in each. Remind the user these files are a starting point: they should review and tweak them, and can run \`/init\` again anytime to re-scan.
 
-Then tell the user that you'll be introducing a few more suggestions for optimizing their codebase and twin setup based on what you found. Present these as a single, well-formatted to-do list where every item is relevant to this repo. Put the most impactful items first.
+Then tell the user that you'll be introducing a few more suggestions for optimizing their codebase and twincode setup based on what you found. Present these as a single, well-formatted to-do list where every item is relevant to this repo. Put the most impactful items first.
 
 When building the list, work through these checks and include only what applies:
 - If frontend code was detected (React, Vue, Svelte, etc.): \`/plugin install frontend-design@claude-plugins-official\` gives Claude design principles and component patterns so it produces polished UI; \`/plugin install playwright@claude-plugins-official\` lets Claude launch a real browser, screenshot what it built, and fix visual bugs itself.
 - If you found gaps in Phase 7 (missing GitHub CLI, missing linting) and the user said no: list them here with a one-line reason why each helps.
 - If tests are missing or sparse: suggest setting up a test framework so Claude can verify its own changes.
-- To help you create skills and optimize existing skills using evals, twin has an official skill-creator plugin you can install. Install it with \`/plugin install skill-creator@claude-plugins-official\`, then run \`/skill-creator <skill-name>\` to create new skills or refine any existing skill. (Always include this one.)
+- To help you create skills and optimize existing skills using evals, twincode has an official skill-creator plugin you can install. Install it with \`/plugin install skill-creator@claude-plugins-official\`, then run \`/skill-creator <skill-name>\` to create new skills or refine any existing skill. (Always include this one.)
 - Browse official plugins with \`/plugin\` — these bundle skills, agents, hooks, and MCP servers that you may find helpful. You can also create your own custom plugins to share them with others. (Always include this one.)`
 
 const TWINIT_JOKES = [

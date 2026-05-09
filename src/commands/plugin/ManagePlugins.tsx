@@ -1523,7 +1523,7 @@ export function ManagePlugins({
         return;
       }
       clearAllCaches();
-      setResult(`✓ Disabled ${selectedPlugin.plugin.name} in .twin/settings.local.json. Run /reload-plugins to apply.`);
+      setResult(`✓ Disabled ${selectedPlugin.plugin.name} in .twincode/settings.local.json. Run /reload-plugins to apply.`);
       if (onManageComplete) void onManageComplete();
       setParentViewState({
         type: 'menu'
@@ -1762,11 +1762,11 @@ export function ManagePlugins({
   if (viewState === 'confirm-project-uninstall' && selectedPlugin) {
     return <Box flexDirection="column">
         <Text bold color="warning">
-          {selectedPlugin.plugin.name} is enabled in .twin/settings.json
+          {selectedPlugin.plugin.name} is enabled in .twincode/settings.json
           (shared with your team)
         </Text>
         <Box marginTop={1} flexDirection="column">
-          <Text>Disable it just for you in .twin/settings.local.json?</Text>
+          <Text>Disable it just for you in .twincode/settings.local.json?</Text>
           <Text dimColor>
             This has the same effect as uninstalling, without affecting other
             contributors.

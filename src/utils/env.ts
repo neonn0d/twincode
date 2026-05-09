@@ -24,8 +24,8 @@ export const getGlobalClaudeFile = memoize((): string => {
   const oauthSuffix = fileSuffixForOauthConfig()
   const configDir = process.env.CLAUDE_CONFIG_DIR || homedir()
 
-  // Always use .twin.json — never fall back to .claude.json
-  return join(configDir, `.twin${oauthSuffix}.json`)
+  // Always use .twincode.json — never fall back to .claude.json
+  return join(configDir, `.twincode${oauthSuffix}.json`)
 })
 
 const hasInternetAccess = memoize(async (): Promise<boolean> => {

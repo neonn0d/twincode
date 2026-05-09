@@ -7,7 +7,6 @@ import { fileURLToPath, pathToFileURL } from 'url'
 import { execSync } from 'child_process'
 import { LOGO_LINES } from '../src/components/logoArt.js'
 
-process.env.CLAUDE_CODE_USE_OPENAI = '1'
 delete process.env.ANTHROPIC_API_KEY
 process.title = 'twin'
 
@@ -143,7 +142,7 @@ function registerMcpServer(vaultPath) {
     env: { OBSIDIAN_VAULT: vaultPath },
     alwaysAllow: [
       'get_project_context', 'log_session', 'set_next_steps', 'set_project_context',
-      'save_knowledge', 'get_knowledge', 'list_knowledge',
+      'save_knowledge', 'get_knowledge', 'list_knowledge', 'search_knowledge',
       'list_notes', 'read_note', 'create_note', 'edit_note', 'append_to_note',
       'search_notes', 'daily_note', 'list_tags', 'list_folders', 'move_note',
       'note_info', 'delete_note',
@@ -161,52 +160,92 @@ async function runOnboarding() {
   console.log(`${pad}${ACCENT}${tagline}${RESET}`)
   console.log('')
   console.log(`  ${BOLD}Welcome to Twin${RESET} ${DIM}— AI coding agent by ${PURPLE}@neonn0d${RESET}`)
-  console.log(`  ${GRAY}Powered by DeepSeek API${RESET}`)
   console.log('')
   console.log(`  ${GRAY}─────────────────────────────────${RESET}`)
-  console.log('')
-  console.log('')
-  console.log('')
-  console.log(`  ${GRAY}─────────────────────────────────${RESET}`)
-  console.log('')
-
-  // Step 1: API Key
-  console.log(`  ${YELLOW}Step 1/3${RESET} ${BOLD}DeepSeek API Key${RESET}`)
-  console.log(`  ${GRAY}Get yours at: platform.deepseek.com${RESET}`)
   console.log('')
 
   let apiKey = ''
-  while (!apiKey.startsWith('sk-')) {
-    process.stdout.write(`  ${ACCENT}›${RESET} Paste your API key: `)
-    apiKey = (await readLine(true)).trim()
-    if (!apiKey.startsWith('sk-')) {
-      console.log(`  ${RED}Invalid key — DeepSeek keys start with sk-${RESET}`)
-    }
-  }
-  console.log(`  ${GREEN}✔ Key saved${RESET}`)
-  console.log('')
-
-  // Step 2: Model
-  console.log(`  ${YELLOW}Step 2/3${RESET} ${BOLD}Choose your model${RESET}`)
-  console.log('')
-  console.log(`  ${ACCENT}1${RESET}  deepseek-v4-pro      ${DIM}Most capable${RESET}   ${GREEN}[recommended]${RESET}`)
-  console.log(`  ${ACCENT}2${RESET}  deepseek-v4-flash    ${DIM}Fast v4${RESET}`)
-  console.log(`  ${ACCENT}3${RESET}  deepseek-chat        ${DIM}Fast & cheap${RESET}`)
-  console.log(`  ${ACCENT}4${RESET}  deepseek-reasoner    ${DIM}Thinks step by step${RESET}`)
-  console.log('')
-
-  const modelMap = { '1': 'deepseek-v4-pro', '2': 'deepseek-v4-flash', '3': 'deepseek-chat', '4': 'deepseek-reasoner' }
   let model = ''
-  while (!model) {
-    process.stdout.write(`  ${ACCENT}›${RESET} Select model [1-4]: `)
+  let providerEnv = {}
+
+  // Step 1: Provider
+  console.log(`  ${YELLOW}Step 1/3${RESET} ${BOLD}Choose your AI provider${RESET}`)
+  console.log('')
+  console.log(`  ${ACCENT}1${RESET}  DeepSeek   ${DIM}Best for coding · 128K · ~$2/mo${RESET}  ${GREEN}platform.deepseek.com${RESET}`)
+  console.log(`  ${ACCENT}2${RESET}  Custom     ${DIM}Any OpenAI-compatible API${RESET}`)
+  console.log('')
+
+  let provider = ''
+  while (!provider) {
+    process.stdout.write(`  ${ACCENT}›${RESET} Select provider [1-2]: `)
     const key = (await readLine(false)).trim()
-    if (modelMap[key]) {
-      model = modelMap[key]
-    } else {
-      console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
-    }
+    if (key === '1') provider = 'deepseek'
+    else if (key === '2') provider = 'custom'
+    else console.log(`  ${RED}Pick 1 or 2${RESET}`)
   }
-  console.log(`  ${GREEN}✔ Model set to ${model}${RESET}`)
+  console.log('')
+
+  if (provider === 'deepseek') {
+    console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}DeepSeek API Key${RESET}`)
+    console.log(`  ${GRAY}Get yours at: platform.deepseek.com${RESET}`)
+    console.log('')
+    while (!apiKey.startsWith('sk-')) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Paste your API key: `)
+      apiKey = (await readLine(true)).trim()
+      if (!apiKey.startsWith('sk-')) console.log(`  ${RED}Invalid key — DeepSeek keys start with sk-${RESET}`)
+    }
+    console.log(`  ${GREEN}✔ Key saved${RESET}`)
+    console.log('')
+
+    console.log(`  ${YELLOW}Step 2b/3${RESET} ${BOLD}Choose your model${RESET}`)
+    console.log('')
+    console.log(`  ${ACCENT}1${RESET}  deepseek-v4-pro      ${DIM}Most capable · 128K${RESET}   ${GREEN}[recommended]${RESET}`)
+    console.log(`  ${ACCENT}2${RESET}  deepseek-v4-flash    ${DIM}Fast · 128K${RESET}`)
+    console.log(`  ${ACCENT}3${RESET}  deepseek-chat        ${DIM}Cheap · 128K${RESET}`)
+    console.log(`  ${ACCENT}4${RESET}  deepseek-reasoner    ${DIM}Thinks · 128K${RESET}`)
+    console.log('')
+    const modelMap = { '1': 'deepseek-v4-pro', '2': 'deepseek-v4-flash', '3': 'deepseek-chat', '4': 'deepseek-reasoner' }
+    while (!model) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Select model [1-4]: `)
+      const key = (await readLine(false)).trim()
+      if (modelMap[key]) model = modelMap[key]
+      else console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
+    }
+    providerEnv = { OPENAI_BASE_URL: 'https://api.deepseek.com/v1', OPENAI_API_KEY: apiKey, OPENAI_MODEL: model }
+  } else {
+    // Custom OpenAI-compatible provider
+    console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}Base URL${RESET}`)
+    console.log(`  ${GRAY}e.g. https://openrouter.ai/api/v1 · https://api.together.xyz/v1 · http://localhost:11434/v1${RESET}`)
+    console.log('')
+    let baseUrl = ''
+    while (!baseUrl) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Base URL: `)
+      baseUrl = (await readLine(false)).trim()
+      if (!baseUrl) console.log(`  ${RED}Base URL required${RESET}`)
+    }
+    console.log('')
+
+    console.log(`  ${YELLOW}Step 2b/3${RESET} ${BOLD}Model name${RESET}`)
+    console.log(`  ${GRAY}e.g. meta-llama/Llama-3.3-70B-Instruct · mistralai/Mixtral-8x7B${RESET}`)
+    console.log('')
+    while (!model) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Model: `)
+      model = (await readLine(false)).trim()
+      if (!model) console.log(`  ${RED}Model name required${RESET}`)
+    }
+    console.log('')
+
+    console.log(`  ${YELLOW}Step 2c/3${RESET} ${BOLD}API Key${RESET} ${DIM}(press Enter to skip for local models)${RESET}`)
+    console.log('')
+    process.stdout.write(`  ${ACCENT}›${RESET} API key: `)
+    apiKey = (await readLine(true)).trim()
+    console.log(`  ${GREEN}✔ Saved${RESET}`)
+    console.log('')
+
+    providerEnv = { OPENAI_BASE_URL: baseUrl, OPENAI_API_KEY: apiKey || 'none', OPENAI_MODEL: model }
+  }
+
+  console.log(`  ${GREEN}✔ Provider set${RESET}`)
   console.log('')
 
   // Step 3: Obsidian vault
@@ -290,11 +329,7 @@ async function runOnboarding() {
     enabledMcpjsonServers: [],
     enabledPlugins: {},
     ...(vaultPath ? { obsidianVault: vaultPath } : {}),
-    env: {
-      OPENAI_BASE_URL: 'https://api.deepseek.com/v1',
-      OPENAI_API_KEY: apiKey,
-      OPENAI_MODEL: model,
-    },
+    env: providerEnv,
     permissions: {
       allow: [
         'mcp__twin-memory__get_project_context',
@@ -304,6 +339,7 @@ async function runOnboarding() {
         'mcp__twin-memory__save_knowledge',
         'mcp__twin-memory__get_knowledge',
         'mcp__twin-memory__list_knowledge',
+        'mcp__twin-memory__search_knowledge',
         'mcp__twin-memory__list_notes',
         'mcp__twin-memory__read_note',
         'mcp__twin-memory__create_note',
@@ -335,6 +371,8 @@ if (existsSync(SETTINGS_PATH)) {
 
 if (needsOnboarding) await runOnboarding()
 
+process.env.CLAUDE_CODE_USE_OPENAI = '1'
+
 // Migrate: ensure settings.json has twin-memory permissions for all users
 if (existsSync(SETTINGS_PATH)) {
   try {
@@ -344,6 +382,7 @@ if (existsSync(SETTINGS_PATH)) {
       'mcp__twin-memory__set_next_steps', 'mcp__twin-memory__set_project_context',
       'mcp__twin-memory__save_knowledge', 'mcp__twin-memory__get_knowledge',
       'mcp__twin-memory__list_knowledge',
+      'mcp__twin-memory__search_knowledge',
       'mcp__twin-memory__list_notes',
       'mcp__twin-memory__read_note', 'mcp__twin-memory__create_note',
       'mcp__twin-memory__edit_note', 'mcp__twin-memory__append_to_note',
@@ -370,7 +409,7 @@ if (existsSync(TWIN_JSON_PATH)) {
     if (server) {
       const alwaysRequired = [
         'get_project_context', 'log_session', 'set_next_steps', 'set_project_context',
-        'save_knowledge', 'get_knowledge', 'list_knowledge',
+        'save_knowledge', 'get_knowledge', 'list_knowledge', 'search_knowledge',
         'list_notes', 'read_note', 'create_note', 'edit_note', 'append_to_note',
         'search_notes', 'daily_note', 'list_tags', 'list_folders', 'move_note',
         'note_info', 'delete_note',

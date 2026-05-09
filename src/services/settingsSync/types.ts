@@ -59,9 +59,9 @@ export type SettingsSyncUploadResult = {
  * Keys used for sync entries
  */
 export const SYNC_KEYS = {
-  USER_SETTINGS: '~/.twin/settings.json',
-  USER_MEMORY: '~/.twin/TWIN.md',
+  USER_SETTINGS: '~/.twincode/settings.json',
+  USER_MEMORY: '~/.twincode/TWINCODE.md',
   projectSettings: (projectId: string) =>
-    `projects/${projectId}/.twin/settings.local.json`,
-  projectMemory: (projectId: string) => `projects/${projectId}/TWIN.local.md`,
+    `projects/${projectId}/.twincode/settings.local.json`,
+  projectMemory: (projectId: string) => `projects/${projectId}/TWINCODE.local.md`,
 } as const

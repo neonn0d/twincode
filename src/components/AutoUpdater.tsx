@@ -188,9 +188,9 @@ export function AutoUpdater({
             ✓ Update installed · Restart to apply
           </Text>}
       {(autoUpdaterResult?.status === 'install_failed' || autoUpdaterResult?.status === 'no_permissions') && <Text color="error" wrap="truncate">
-          ✗ Auto-update failed &middot; Try <Text bold>twin doctor</Text> or{' '}
+          ✗ Auto-update failed &middot; Try <Text bold>twincode doctor</Text> or{' '}
           <Text bold>
-            {hasLocalInstall ? `cd ~/.twin/local && npm update ${MACRO.PACKAGE_URL}` : `npm i -g ${MACRO.PACKAGE_URL}`}
+            {hasLocalInstall ? `cd ~/.twincode/local && npm update ${MACRO.PACKAGE_URL}` : `npm i -g ${MACRO.PACKAGE_URL}`}
           </Text>
         </Text>}
     </Box>;

@@ -441,6 +441,115 @@ function getSimpleToneAndStyleSection(): string {
   return [`# Tone and style`, ...prependBullets(items)].join(`\n`)
 }
 
+function isThirdPartyPrompt(): boolean {
+  return (
+    process.env.CLAUDE_CODE_USE_OPENAI === '1' ||
+    process.env.CLAUDE_CODE_USE_GEMINI === '1'
+  )
+}
+
+function getCompactDoingTasksSection(): string {
+  return `# Doing tasks
+ - Only make changes explicitly requested. No cleanup, extras, or refactoring beyond the ask.
+ - No error handling for impossible scenarios. Trust internal guarantees; validate only at system boundaries.
+ - No helpers or abstractions for one-time operations. No speculative design.
+ - No backwards-compat hacks. Delete unused code completely.
+ - Read before modifying. Don't propose changes to unread files.
+ - Don't create files unless necessary. Prefer editing existing ones.
+ - Diagnose before switching approach. Don't retry identical failed actions blindly.
+ - No security vulnerabilities (command injection, XSS, SQLi, OWASP top 10).
+ - Default to no comments unless logic is non-obvious.`
+}
+
+function getCompactActionsSection(): string {
+  return `# Executing actions with care
+ - Ask before destructive/hard-to-reverse ops: rm -rf, git reset --hard, force push, dropping tables, killing processes.
+ - Ask before shared-state changes: pushing code, opening/closing PRs, sending messages, modifying shared infra.
+ - Past approval ≠ blanket approval. Match action scope exactly to what was asked.
+ - For git: prefer new commits over amend. Never --no-verify unless explicitly asked.`
+}
+
+function buildVaultInjection(): string | null {
+  const settings = getInitialSettings() as Record<string, unknown>
+  const vault = settings.obsidianVault as string | undefined
+  if (!vault) return null
+
+  const { existsSync, readFileSync, readdirSync } = require('fs')
+  const { join, basename } = require('path')
+  const cwd = process.env.PWD || process.cwd()
+  const projectName = basename(cwd)
+  const home = require('os').homedir()
+  let rel: string
+  try { rel = require('path').relative(home, cwd) } catch { rel = projectName }
+
+  let projectNote: string | null = null
+  for (const candidate of [
+    join(vault, 'twincode', rel, 'README.md'),
+    join(vault, 'twincode', `${projectName}.md`),
+    join(vault, 'Projects', `${projectName}.md`),
+  ]) {
+    if (existsSync(candidate)) {
+      try { projectNote = readFileSync(candidate, 'utf8').trim() } catch {}
+      break
+    }
+  }
+
+  const SESSION_CAP = 3000
+  const YESTERDAY_CAP = 1500
+  const BRAIN_TOPIC_CAP = 1500
+  const now = new Date()
+  const today = now.toISOString().slice(0, 10)
+  const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10)
+
+  const sessionFilePath = join(vault, 'twincode', rel, 'sessions', `${today}.md`)
+  let todayNote: string | null = null
+  if (existsSync(sessionFilePath)) {
+    try {
+      const raw = readFileSync(sessionFilePath, 'utf8').trim()
+      todayNote = raw.length > SESSION_CAP ? '…' + raw.slice(-SESSION_CAP) : raw
+    } catch {}
+  }
+
+  let yesterdayNote: string | null = null
+  const yesterdayPath = join(vault, 'twincode', rel, 'sessions', `${yesterday}.md`)
+  if (!todayNote && existsSync(yesterdayPath)) {
+    try {
+      const raw = readFileSync(yesterdayPath, 'utf8').trim()
+      yesterdayNote = raw.length > YESTERDAY_CAP
+        ? '…' + raw.slice(-YESTERDAY_CAP)
+        : raw
+    } catch {}
+  }
+
+  const brainDir = join(vault, 'twincode', rel, 'brain')
+  const brainParts: string[] = []
+  if (existsSync(brainDir)) {
+    try {
+      const brainFiles = readdirSync(brainDir)
+        .filter((f: string) => f.endsWith('.md'))
+        .sort() as string[]
+      for (const f of brainFiles) {
+        const topic = f.replace('.md', '')
+        try {
+          const raw = readFileSync(join(brainDir, f), 'utf8').trim()
+          const brainContent = raw.length > BRAIN_TOPIC_CAP
+            ? raw.slice(0, BRAIN_TOPIC_CAP) + '\n…(truncated — use get_knowledge for full note)'
+            : raw
+          if (brainContent) brainParts.push(`## Brain: ${topic}\n\n${brainContent}`)
+        } catch {}
+      }
+    } catch {}
+  }
+
+  const mcpInstructions = `Vault: ${vault}. Brain notes below (\`## Brain: <topic>\`) = persistent project knowledge built by /twinit — read before re-scanning files. Session log = today's work (or yesterday's if today hasn't started). /save → call log_session. No cwd arg needed — tools use current directory automatically.`
+  const parts = [mcpInstructions]
+  if (projectNote) parts.push(`## Project memory (${projectName})\n\n${projectNote}`)
+  if (todayNote) parts.push(`## Today's sessions (${today})\n\n${todayNote}`)
+  else if (yesterdayNote) parts.push(`## Yesterday's session (${yesterday})\n\n${yesterdayNote}`)
+  parts.push(...brainParts)
+  return parts.join('\n\n')
+}
+
 export async function getSystemPrompt(
   tools: Tools,
   model: string,
@@ -563,12 +672,12 @@ ${CYBER_RISK_INSTRUCTION}`,
     getSimpleSystemSection(),
     outputStyleConfig === null ||
     outputStyleConfig.keepCodingInstructions === true
-      ? getSimpleDoingTasksSection()
+      ? (isThirdPartyPrompt() ? getCompactDoingTasksSection() : getSimpleDoingTasksSection())
       : null,
-    getActionsSection(),
+    isThirdPartyPrompt() ? getCompactActionsSection() : getActionsSection(),
     getUsingYourToolsSection(enabledTools),
     getSimpleToneAndStyleSection(),
-    getOutputEfficiencySection(),
+    isThirdPartyPrompt() ? null : getOutputEfficiencySection(),
     // === BOUNDARY MARKER - DO NOT MOVE OR REMOVE ===
     ...(shouldUseGlobalCacheScope() ? [SYSTEM_PROMPT_DYNAMIC_BOUNDARY] : []),
     // --- Dynamic content (registry-managed) ---
@@ -693,82 +802,11 @@ export async function computeSimpleEnvInfo(
     knowledgeCutoffMessage,
     process.env.USER_TYPE === 'ant' && isUndercover()
       ? null
-      : `twin is available as a CLI in the terminal and can be used across local development environments and IDE workflows.`,
+      : `twincode is available as a CLI in the terminal and can be used across local development environments and IDE workflows.`,
     process.env.USER_TYPE === 'ant' && isUndercover()
       ? null
-      : `twin config directory is ~/.twin/. User-level instructions file: ~/.twin/TWIN.md. User-level settings: ~/.twin/settings.json. When any external tool or install guide says to edit ~/.claude/ or ~/.claude/CLAUDE.md, translate that to ~/.twin/ or ~/.twin/TWIN.md instead.`,
-    (() => {
-      const settings = getInitialSettings() as Record<string, unknown>
-      const vault = settings.obsidianVault as string | undefined
-      if (!vault) return null
-
-      // Directly read the project note and inject it — guaranteed context,
-      // no reliance on twin remembering to call get_project_context.
-      const { existsSync, readFileSync, readdirSync } = require('fs')
-      const { join, basename } = require('path')
-      const cwd = process.env.PWD || process.cwd()
-      const projectName = basename(cwd)
-
-      let projectNote: string | null = null
-      const home = require('os').homedir()
-      let rel: string
-      try { rel = require('path').relative(home, cwd) } catch { rel = projectName }
-      const candidates = [
-        join(vault, 'twin', rel, 'README.md'),
-        join(vault, 'twin', `${projectName}.md`),
-        join(vault, 'Projects', `${projectName}.md`),
-      ]
-      for (const candidate of candidates) {
-        if (existsSync(candidate)) {
-          try {
-            projectNote = readFileSync(candidate, 'utf8').trim()
-          } catch {}
-          break
-        }
-      }
-
-      // Inject today's session file (cap at 3000 chars — most recent is most relevant)
-      const SESSION_CAP = 3000
-      const BRAIN_TOPIC_CAP = 1500
-      const today = new Date().toISOString().slice(0, 10)
-      const sessionFilePath = join(vault, 'twin', rel, 'sessions', `${today}.md`)
-      let todayNote: string | null = null
-      if (existsSync(sessionFilePath)) {
-        try {
-          const raw = readFileSync(sessionFilePath, 'utf8').trim()
-          todayNote = raw.length > SESSION_CAP ? '…' + raw.slice(-SESSION_CAP) : raw
-        } catch {}
-      }
-
-      // Inject brain/ knowledge notes (cap each topic to avoid runaway growth)
-      const brainDir = join(vault, 'twin', rel, 'brain')
-      const brainParts: string[] = []
-      if (existsSync(brainDir)) {
-        try {
-          const brainFiles = readdirSync(brainDir)
-            .filter((f: string) => f.endsWith('.md'))
-            .sort() as string[]
-          for (const f of brainFiles) {
-            const topic = f.replace('.md', '')
-            try {
-              const raw = readFileSync(join(brainDir, f), 'utf8').trim()
-              const brainContent = raw.length > BRAIN_TOPIC_CAP
-                ? raw.slice(0, BRAIN_TOPIC_CAP) + '\n…(truncated — use get_knowledge for full note)'
-                : raw
-              if (brainContent) brainParts.push(`## Brain: ${topic}\n\n${brainContent}`)
-            } catch {}
-          }
-        } catch {}
-      }
-
-      const mcpInstructions = `twin-memory MCP connected (vault: ${vault}). Brain notes below (\`## Brain: <topic>\`) = persistent project knowledge built by /twinit — read before re-scanning files. Session log below = today's work. Cross-link: brain updates cite session date, session logs cite brain topics touched. /save → call log_session only.`
-
-      const parts = [mcpInstructions]
-      if (projectNote) parts.push(`## Project memory (${projectName})\n\n${projectNote}`)
-      if (todayNote) parts.push(`## Today's sessions (${today})\n\n${todayNote}`)
-      parts.push(...brainParts)
-      return parts.length > 1 ? parts.join('\n\n') : mcpInstructions
-    })(),
+      : `twincode config directory is ~/.twincode/. User-level instructions file: ~/.twincode/TWINCODE.md. User-level settings: ~/.twincode/settings.json. When any external tool or install guide says to edit ~/.claude/ or ~/.claude/CLAUDE.md, translate that to ~/.twincode/ or ~/.twincode/TWINCODE.md instead.`,
+    buildVaultInjection(),
   ].filter(item => item !== null)
 
   return [

@@ -1304,6 +1304,11 @@ export const getClaudeAIOAuthTokens = memoize((): OAuthTokens | null => {
     }
   }
 
+  // Skip keychain/libsecret when Anthropic auth isn't in use (3P providers like
+  // OpenAI, Bedrock, Vertex, etc.). Avoids spawning secret-tool on Linux, which
+  // triggers a 1Password/GNOME Keyring unlock dialog on every startup.
+  if (!isAnthropicAuthEnabled()) return null
+
   try {
     const secureStorage = getSecureStorage()
     const storageData = secureStorage.read()

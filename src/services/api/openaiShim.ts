@@ -371,6 +371,12 @@ function isGeminiMode(): boolean {
   )
 }
 
+// Token-saving mode: all OpenAI-compat providers benefit from shorter descriptions.
+// Truncates tool descriptions to save ~25K tokens per request vs full descriptions.
+function isThirdPartyOpenAI(): boolean {
+  return isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI) && !isGeminiMode()
+}
+
 function hydrateOpenAIShimCompatibilityEnv(
   processEnv: NodeJS.ProcessEnv = process.env,
 ): void {
@@ -781,10 +787,34 @@ function normalizeSchemaForOpenAI(
   return record
 }
 
+// Recursively strip `description` fields from all property schemas.
+// Parameter names already convey meaning; descriptions add ~3-5K tokens/req.
+function stripParamDescriptions(schema: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...schema }
+  delete result.description
+  if (result.properties && typeof result.properties === 'object') {
+    const stripped: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(result.properties as Record<string, unknown>)) {
+      stripped[key] = stripParamDescriptions(val as Record<string, unknown>)
+    }
+    result.properties = stripped
+  }
+  if (result.items && typeof result.items === 'object' && !Array.isArray(result.items)) {
+    result.items = stripParamDescriptions(result.items as Record<string, unknown>)
+  }
+  for (const key of ['anyOf', 'oneOf', 'allOf'] as const) {
+    if (Array.isArray(result[key])) {
+      result[key] = (result[key] as Record<string, unknown>[]).map(stripParamDescriptions)
+    }
+  }
+  return result
+}
+
 function convertTools(
   tools: Array<{ name: string; description?: string; input_schema?: Record<string, unknown> }>,
 ): OpenAITool[] {
   const isGemini = isGeminiMode()
+  const is3P = isThirdPartyOpenAI() || isGemini
 
   return tools
     .filter(t => t.name !== 'ToolSearchTool') // Not relevant for OpenAI
@@ -802,15 +832,24 @@ function convertTools(
         }
       }
 
+      // Reduce description length for all 3P providers (DeepSeek, Gemini).
+      // First 500 chars keeps key behavioral guidance, cuts ~25K tokens/req.
+      const fullDesc = t.description ?? ''
+      const description = is3P ? fullDesc.slice(0, 500) : fullDesc
+
+      // Strip parameter-level descriptions too (~3-5K tokens saved).
+      const normalizedSchema = normalizeSchemaForOpenAI(
+        schema,
+        !isGemini && !isEnvTruthy(process.env.OPENCLAUDE_DISABLE_STRICT_TOOLS),
+      )
+      const parameters = is3P ? stripParamDescriptions(normalizedSchema) : normalizedSchema
+
       return {
         type: 'function' as const,
         function: {
           name: t.name,
-          description: t.description ?? '',
-          parameters: normalizeSchemaForOpenAI(
-            schema,
-            !isGemini && !isEnvTruthy(process.env.OPENCLAUDE_DISABLE_STRICT_TOOLS),
-          ),
+          description,
+          parameters,
         },
       }
     })

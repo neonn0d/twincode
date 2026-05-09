@@ -104,6 +104,9 @@ function isPersistentRetryEnabled(): boolean {
 }
 
 function isQuotaExhausted(error: any): boolean {
+  // Gemini free tier 429s are transient rate limits — let retry logic handle them
+  if (process.env.CLAUDE_CODE_USE_GEMINI === '1') return false
+
   const msg = (error?.message || '').toLowerCase()
 
   return (
@@ -536,7 +539,7 @@ export async function* withRetry<T>(
 }
 
 function getRetryAfter(error: unknown): string | null {
-  return (
+  const fromHeader = (
     ((error as { headers?: { 'retry-after'?: string } }).headers?.[
       'retry-after'
     ] ||
@@ -544,6 +547,14 @@ function getRetryAfter(error: unknown): string | null {
       ((error as APIError).headers as Headers)?.get?.('retry-after')) ??
     null
   )
+  if (fromHeader) return fromHeader
+
+  // Gemini embeds retry delay in the message body: "Please retry in 41.05s"
+  const msg: string = (error as APIError)?.message ?? ''
+  const match = msg.match(/please retry in ([0-9.]+)s/i)
+  if (match) return String(Math.ceil(parseFloat(match[1])))
+
+  return null
 }
 
 export function getRetryDelay(

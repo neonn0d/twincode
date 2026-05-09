@@ -36,6 +36,7 @@ import login from './commands/login/index.js'
 import logout from './commands/logout/index.js'
 import key from './commands/key/index.js'
 import twinLogout from './commands/twin-logout/index.js'
+import twinSwitch from './commands/twin-switch/index.js'
 import installGitHubApp from './commands/install-github-app/index.js'
 import installSlackApp from './commands/install-slack-app/index.js'
 import breakCache from './commands/break-cache/index.js'
@@ -141,7 +142,6 @@ import plan from './commands/plan/index.js'
 import fast from './commands/fast/index.js'
 import passes from './commands/passes/index.js'
 import privacySettings from './commands/privacy-settings/index.js'
-import provider from './commands/provider/index.js'
 import hooks from './commands/hooks/index.js'
 import files from './commands/files/index.js'
 import branch from './commands/branch/index.js'
@@ -206,7 +206,7 @@ import stats from './commands/stats/index.js'
 const usageReport: Command = {
   type: 'prompt',
   name: 'insights',
-  description: 'Generate a report analyzing your twin sessions',
+  description: 'Generate a report analyzing your twincode sessions',
   contentLength: 0,
   progressMessage: 'analyzing your sessions',
   source: 'builtin',
@@ -317,7 +317,6 @@ const COMMANDS = memoize((): Command[] => [
   outputStyle,
   remoteEnv,
   plugin,
-  provider,
   pr_comments,
   releaseNotes,
   reloadPlugins,
@@ -366,6 +365,7 @@ const COMMANDS = memoize((): Command[] => [
   ...(!isUsing3PServices() ? [logout, login()].filter(Boolean) : []),
   key,
   twinLogout,
+  twinSwitch,
   passes,
   ...(peersCmd ? [peersCmd] : []),
   tasks,

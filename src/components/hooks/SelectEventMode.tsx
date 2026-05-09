@@ -45,7 +45,7 @@ export function SelectEventMode(t0) {
   const subtitle = `${totalHooksCount} ${t1} configured`;
   let t2;
   if ($[2] !== restrictedByPolicy) {
-    t2 = restrictedByPolicy && <Box flexDirection="column"><Text color="suggestion">{figures.info} Hooks Restricted by Policy</Text><Text dimColor={true}>Only hooks from managed settings can run. User-defined hooks from ~/.twin/settings.json, .twin/settings.json, and .twin/settings.local.json are blocked.</Text></Box>;
+    t2 = restrictedByPolicy && <Box flexDirection="column"><Text color="suggestion">{figures.info} Hooks Restricted by Policy</Text><Text dimColor={true}>Only hooks from managed settings can run. User-defined hooks from ~/.twincode/settings.json, .twincode/settings.json, and .twincode/settings.local.json are blocked.</Text></Box>;
     $[2] = restrictedByPolicy;
     $[3] = t2;
   } else {

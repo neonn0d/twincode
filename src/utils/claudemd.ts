@@ -3,7 +3,7 @@
  *
  * 1. Managed memory (eg. /etc/claude-code/CLAUDE.md) - Global instructions for all users
  * 2. User memory (~/.claude/CLAUDE.md) - Private global instructions for all projects
- * 3. Project memory (TWIN.md or fallback CLAUDE.md, plus .claude/CLAUDE.md and .claude/rules/*.md in project roots) - Instructions checked into the codebase
+ * 3. Project memory (TWINCODE.md or fallback CLAUDE.md, plus .claude/CLAUDE.md and .claude/rules/*.md in project roots) - Instructions checked into the codebase
  * 4. Local memory (CLAUDE.local.md in project roots) - Private project-specific instructions
  *
  * Files are loaded in reverse order of priority, i.e. the latest files are highest priority
@@ -13,7 +13,7 @@
  * - User memory is loaded from the user's home directory
  * - Project and Local files are discovered by traversing from the current directory up to root
  * - Files closer to the current directory have higher priority (loaded later)
- * - TWIN.md is preferred for root project instructions; CLAUDE.md is only used when TWIN.md is absent
+ * - TWINCODE.md is preferred for root project instructions; CLAUDE.md is only used when TWINCODE.md is absent
  * - .claude/CLAUDE.md and all .md files in .claude/rules/ are checked in each directory for Project memory
  *
  * Memory @include directive:
@@ -873,7 +873,7 @@ export const getMemoryFiles = memoize(
     // When running from a git worktree nested inside its main repo (e.g.,
     // .claude/worktrees/<name>/ from `claude -w`), the upward walk passes
     // through both the worktree root and the main repo root. Both contain
-    // checked-in files like TWIN.md/CLAUDE.md and .claude/rules/*.md, so the same
+    // checked-in files like TWINCODE.md/CLAUDE.md and .claude/rules/*.md, so the same
     // content gets loaded twice. Skip Project-type (checked-in) files from
     // directories above the worktree but within the main repo — the worktree
     // already has its own checkout. CLAUDE.local.md is gitignored so it only
@@ -897,7 +897,7 @@ export const getMemoryFiles = memoize(
         pathInWorkingPath(dir, canonicalRoot) &&
         !pathInWorkingPath(dir, gitRoot)
 
-      // Try reading the root project instruction file (TWIN.md first, otherwise CLAUDE.md)
+      // Try reading the root project instruction file (TWINCODE.md first, otherwise CLAUDE.md)
       if (isSettingSourceEnabled('projectSettings') && !skipProject) {
         const projectPath = getProjectInstructionFilePath(
           dir,
@@ -923,8 +923,8 @@ export const getMemoryFiles = memoize(
           )),
         )
 
-        // Try reading .twin/CLAUDE.md (Project) — twin-specific override dir
-        const dotTwinPath = join(dir, '.twin', 'CLAUDE.md')
+        // Try reading .twincode/CLAUDE.md (Project) — twincode-specific override dir
+        const dotTwinPath = join(dir, '.twincode', 'CLAUDE.md')
         result.push(
           ...(await processMemoryFile(
             dotTwinPath,
@@ -946,8 +946,8 @@ export const getMemoryFiles = memoize(
           })),
         )
 
-        // Try reading .twin/rules/*.md files (Project)
-        const twinRulesDir = join(dir, '.twin', 'rules')
+        // Try reading .twincode/rules/*.md files (Project)
+        const twinRulesDir = join(dir, '.twincode', 'rules')
         result.push(
           ...(await processMdRules({
             rulesDir: twinRulesDir,
@@ -1005,8 +1005,8 @@ export const getMemoryFiles = memoize(
           )),
         )
 
-        // Try reading .twin/CLAUDE.md from the additional directory
-        const dotTwinPath = join(dir, '.twin', 'CLAUDE.md')
+        // Try reading .twincode/CLAUDE.md from the additional directory
+        const dotTwinPath = join(dir, '.twincode', 'CLAUDE.md')
         result.push(
           ...(await processMemoryFile(
             dotTwinPath,
@@ -1027,9 +1027,9 @@ export const getMemoryFiles = memoize(
             conditionalRule: false,
           })),
 
-        // Try reading .twin/rules/*.md files from the additional directory
+        // Try reading .twincode/rules/*.md files from the additional directory
         ...(await processMdRules({
-            rulesDir: join(dir, '.twin', 'rules'),
+            rulesDir: join(dir, '.twincode', 'rules'),
             type: 'Project',
             processedPaths,
             includeExternal,
@@ -1316,7 +1316,7 @@ export async function getMemoryFilesForNestedDirectory(
 ): Promise<MemoryFileInfo[]> {
   const result: MemoryFileInfo[] = []
 
-  // Process project memory files (TWIN.md first, otherwise CLAUDE.md, plus .claude/CLAUDE.md)
+  // Process project memory files (TWINCODE.md first, otherwise CLAUDE.md, plus .claude/CLAUDE.md)
   if (isSettingSourceEnabled('projectSettings')) {
     const projectPath = getProjectInstructionFilePath(
       dir,
@@ -1496,7 +1496,7 @@ export async function shouldShowClaudeMdExternalIncludesWarning(): Promise<boole
 }
 
 /**
- * Check if a file path is a memory file (TWIN.md, CLAUDE.md, CLAUDE.local.md, or .claude/rules/*.md)
+ * Check if a file path is a memory file (TWINCODE.md, CLAUDE.md, CLAUDE.local.md, or .claude/rules/*.md)
  */
 export function isMemoryFilePath(filePath: string): boolean {
   const name = basename(filePath)

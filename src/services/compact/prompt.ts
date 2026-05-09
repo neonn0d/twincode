@@ -305,8 +305,28 @@ export function getPartialCompactPrompt(
   return prompt
 }
 
-export function getCompactPrompt(customInstructions?: string): string {
+// Appended when the conversation already contains a prior compaction summary
+// as its first message. Tells the model to refine the existing summary rather
+// than restart from scratch — mirrors pi-mono's UPDATE_SUMMARIZATION_PROMPT.
+// Without this, repeated compactions drift: each pass treats the previous
+// summary as just another user message and re-summarizes it, losing detail.
+const UPDATE_COMPACT_ADDENDUM = `
+
+INCREMENTAL UPDATE — IMPORTANT:
+The conversation above begins with a "Summary" message that captures earlier compacted history. Treat that prior summary as the AUTHORITATIVE record of work before it. Your job is to produce an UPDATED summary that integrates new developments from the messages that came AFTER it. Rules:
+- PRESERVE all factual details from the prior summary (exact file paths, function names, error messages, user feedback verbatim, decisions made).
+- ADD new progress, discoveries, errors, fixes, and decisions from the recent messages.
+- UPDATE "Pending Tasks": move completed items out, add new ones that surfaced.
+- UPDATE "Current Work" and "Optional Next Step" to reflect the MOST RECENT activity, not the older state.
+- REMOVE only items the recent messages have explicitly resolved or invalidated.
+Do NOT restart the summary from scratch. Do NOT drop information that is still relevant just because it appeared earlier.`
+
+export function getCompactPrompt(customInstructions?: string, hasPreviousSummary?: boolean): string {
   let prompt = NO_TOOLS_PREAMBLE + BASE_COMPACT_PROMPT
+
+  if (hasPreviousSummary) {
+    prompt += UPDATE_COMPACT_ADDENDUM
+  }
 
   if (customInstructions && customInstructions.trim() !== '') {
     prompt += `\n\nAdditional Instructions:\n${customInstructions}`

@@ -983,6 +983,14 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Enable background memory consolidation (auto-dream). When set, overrides the server-side default.',
         ),
+      obsidianMemory: z
+        .object({
+          autoLoad: z.boolean().optional(),
+          autoSave: z.boolean().optional(),
+          mode: z.enum(['auto', 'prompt', 'manual']).optional(),
+        })
+        .optional()
+        .describe('Obsidian MCP memory settings for twin.'),
       showThinkingSummaries: z
         .boolean()
         .optional()

@@ -1849,7 +1849,7 @@ export function getMemoryPath(memoryType: MemoryType): string {
 
   switch (memoryType) {
     case 'User':
-      return join(getClaudeConfigHomeDir(), 'TWIN.md')
+      return join(getClaudeConfigHomeDir(), 'TWINCODE.md')
     case 'Local':
       return join(cwd, 'CLAUDE.local.md')
     case 'Project':

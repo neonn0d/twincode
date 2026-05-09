@@ -1137,7 +1137,7 @@ export function REPL({
   // session from mid-conversation context.
   const haikuTitleAttemptedRef = useRef((initialMessages?.length ?? 0) > 0);
   const agentTitle = mainThreadAgentDefinition?.agentType;
-  const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'twin';
+  const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'twincode';
   const isWaitingForApproval = toolUseConfirmQueue.length > 0 || promptQueue.length > 0 || pendingWorkerRequest || pendingSandboxRequest;
   // Local-jsx commands (like /plugin, /config) show user-facing dialogs that
   // wait for input. Require jsx != null — if the flag is stuck true but jsx
@@ -1681,7 +1681,7 @@ export function REPL({
     if (wt.creationDurationMs < 15_000) return;
     worktreeTipShownRef.current = true;
     const secs = Math.round(wt.creationDurationMs / 1000);
-    setMessages(prev => [...prev, createSystemMessage(`Worktree creation took ${secs}s. For large repos, set \`worktree.sparsePaths\` in .twin/settings.json to check out only the directories you need — e.g. \`{"worktree": {"sparsePaths": ["src", "packages/foo"]}}\`.`, 'info')]);
+    setMessages(prev => [...prev, createSystemMessage(`Worktree creation took ${secs}s. For large repos, set \`worktree.sparsePaths\` in .twincode/settings.json to check out only the directories you need — e.g. \`{"worktree": {"sparsePaths": ["src", "packages/foo"]}}\`.`, 'info')]);
   }, [setMessages]);
 
   // Hide spinner when the only in-progress tool is Sleep
@@ -4190,7 +4190,7 @@ export function REPL({
   useEffect(() => {
     const handleSuspend = () => {
       // Print suspension instructions
-      process.stdout.write(`\ntwin has been suspended. Run \`fg\` to bring twin back.\nNote: ctrl + z now suspends twin, ctrl + _ undoes input.\n`);
+      process.stdout.write(`\ntwincode has been suspended. Run \`fg\` to bring twincode back.\nNote: ctrl + z now suspends twincode, ctrl + _ undoes input.\n`);
     };
     const handleResume = () => {
       // Force complete component tree replacement instead of terminal clear

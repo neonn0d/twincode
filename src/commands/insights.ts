@@ -247,7 +247,7 @@ function getSessionMetaDir(): string {
   return join(getDataDir(), 'session-meta')
 }
 
-const FACET_EXTRACTION_PROMPT = `Analyze this twin session and extract structured facets.
+const FACET_EXTRACTION_PROMPT = `Analyze this twincode session and extract structured facets.
 
 CRITICAL GUIDELINES:
 
@@ -687,7 +687,7 @@ function formatTranscriptForFacets(log: LogOption): string {
   return lines.join('\n')
 }
 
-const SUMMARIZE_CHUNK_PROMPT = `Summarize this portion of a twin session transcript. Focus on:
+const SUMMARIZE_CHUNK_PROMPT = `Summarize this portion of a twincode session transcript. Focus on:
 1. What the user asked for
 2. What Claude did (tools used, files modified)
 3. Any friction or issues
@@ -1156,12 +1156,12 @@ type InsightSection = {
 const INSIGHT_SECTIONS: InsightSection[] = [
   {
     name: 'project_areas',
-    prompt: `Analyze this twin usage data and identify project areas.
+    prompt: `Analyze this twincode usage data and identify project areas.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
   "areas": [
-    {"name": "Area name", "session_count": N, "description": "2-3 sentences about what was worked on and how twin was used."}
+    {"name": "Area name", "session_count": N, "description": "2-3 sentences about what was worked on and how twincode was used."}
   ]
 }
 
@@ -1170,18 +1170,18 @@ Include 4-5 areas. Skip internal CC operations.`,
   },
   {
     name: 'interaction_style',
-    prompt: `Analyze this twin usage data and describe the user's interaction style.
+    prompt: `Analyze this twincode usage data and describe the user's interaction style.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
-  "narrative": "2-3 paragraphs analyzing HOW the user interacts with twin. Use second person 'you'. Describe patterns: iterate quickly vs detailed upfront specs? Interrupt often or let Claude run? Include specific examples. Use **bold** for key insights.",
+  "narrative": "2-3 paragraphs analyzing HOW the user interacts with twincode. Use second person 'you'. Describe patterns: iterate quickly vs detailed upfront specs? Interrupt often or let Claude run? Include specific examples. Use **bold** for key insights.",
   "key_pattern": "One sentence summary of most distinctive interaction style"
 }`,
     maxTokens: 8192,
   },
   {
     name: 'what_works',
-    prompt: `Analyze this twin usage data and identify what's working well for this user. Use second person ("you").
+    prompt: `Analyze this twincode usage data and identify what's working well for this user. Use second person ("you").
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1196,7 +1196,7 @@ Include 3 impressive workflows.`,
   },
   {
     name: 'friction_analysis',
-    prompt: `Analyze this twin usage data and identify friction points for this user. Use second person ("you").
+    prompt: `Analyze this twincode usage data and identify friction points for this user. Use second person ("you").
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1211,7 +1211,7 @@ Include 3 friction categories with 2 examples each.`,
   },
   {
     name: 'suggestions',
-    prompt: `Analyze this twin usage data and suggest improvements.
+    prompt: `Analyze this twincode usage data and suggest improvements.
 
 ## CC FEATURES REFERENCE (pick from these for features_to_try):
 1. **MCP Servers**: Connect Claude to external tools, databases, and APIs via Model Context Protocol.
@@ -1254,7 +1254,7 @@ IMPORTANT for features_to_try: Pick 2-3 from the CC FEATURES REFERENCE above. In
   },
   {
     name: 'on_the_horizon',
-    prompt: `Analyze this twin usage data and identify future opportunities.
+    prompt: `Analyze this twincode usage data and identify future opportunities.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1271,7 +1271,7 @@ Include 3 opportunities. Think BIG - autonomous workflows, parallel agents, iter
     ? [
         {
           name: 'cc_team_improvements',
-          prompt: `Analyze this twin usage data and suggest product improvements for the CC team.
+          prompt: `Analyze this twincode usage data and suggest product improvements for the CC team.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1285,7 +1285,7 @@ Include 2-3 improvements based on friction patterns observed.`,
         },
         {
           name: 'model_behavior_improvements',
-          prompt: `Analyze this twin usage data and suggest model behavior improvements.
+          prompt: `Analyze this twincode usage data and suggest model behavior improvements.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1301,7 +1301,7 @@ Include 2-3 improvements based on friction patterns observed.`,
     : []),
   {
     name: 'fun_ending',
-    prompt: `Analyze this twin usage data and find a memorable moment.
+    prompt: `Analyze this twincode usage data and find a memorable moment.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {

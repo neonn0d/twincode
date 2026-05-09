@@ -1,6 +1,6 @@
 import { dirname, join } from 'path'
 
-export const PRIMARY_PROJECT_INSTRUCTION_FILE = 'TWIN.md'
+export const PRIMARY_PROJECT_INSTRUCTION_FILE = 'TWINCODE.md'
 export const FALLBACK_PROJECT_INSTRUCTION_FILE = 'CLAUDE.md'
 
 export function getProjectInstructionFilePaths(dir: string): string[] {

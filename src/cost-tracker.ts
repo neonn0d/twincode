@@ -339,7 +339,7 @@ export function addToTotalSessionCost(
   if (shouldLogTokenUsageVerbose()) {
     process.stderr.write(
       JSON.stringify({
-        tag: 'twin.tokenUsage',
+        tag: 'twincode.tokenUsage',
         model,
         provider: cacheProvider,
         input_tokens: usage.input_tokens,

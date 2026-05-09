@@ -302,6 +302,12 @@ export function getImageTooLargeErrorMessage(): string {
     : 'Image was too large. Double press esc to go back and try again with a smaller image.'
 }
 export function getRequestTooLargeErrorMessage(): string {
+  const isThirdPartyProvider =
+    process.env.CLAUDE_CODE_USE_OPENAI === '1' ||
+    process.env.CLAUDE_CODE_USE_GEMINI === '1'
+  if (isThirdPartyProvider) {
+    return `Provider rejected the request as too large. Twin's system prompt + tool schemas exceed your provider's free-tier context limit. Run /switch to change providers (DeepSeek recommended) or upgrade your current plan.`
+  }
   const limits = `max ${formatFileSize(PDF_TARGET_RAW_SIZE)}`
   return getIsNonInteractiveSession()
     ? `Request too large (${limits}). Try with a smaller file.`

@@ -1,22 +1,90 @@
 import * as React from 'react'
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
+import { homedir, platform } from 'os'
 import type { LocalJSXCommandCall } from '../../types/command.js'
+import { getInitialSettings } from '../../utils/settings/settings.js'
+
+function getObsidianConfigPath(): string {
+  const plat = platform()
+  if (plat === 'linux') {
+    const native = join(homedir(), '.config', 'obsidian', 'obsidian.json')
+    const flatpak = join(homedir(), '.var', 'app', 'md.obsidian.Obsidian', 'config', 'obsidian', 'obsidian.json')
+    return existsSync(native) ? native : flatpak
+  }
+  if (plat === 'darwin') return join(homedir(), 'Library', 'Application Support', 'obsidian', 'obsidian.json')
+  return join(process.env.APPDATA || '', 'obsidian', 'obsidian.json')
+}
 
 export const call: LocalJSXCommandCall = async (onDone) => {
   const cwd = process.cwd()
+  const settings = getInitialSettings() as Record<string, unknown>
+  const vault = settings.obsidianVault as string | undefined
 
-  onDone('Scanning project for twin brain…', {
+  if (!vault) {
+    const obsidianConfigPath = getObsidianConfigPath()
+
+    onDone('Setting up vault…', {
+      display: 'system',
+      shouldQuery: true,
+      metaMessages: [
+        `No Obsidian vault is configured yet. Your job is to find the vault path and save it to settings before we can use /twinit.
+
+## Setup steps
+
+### 1 — Find the Obsidian vault
+
+Read this file with the Read tool: \`${obsidianConfigPath}\`
+
+Parse the JSON. The "vaults" object has entries like \`{ "<id>": { "path": "/absolute/path/to/vault" } }\`. Extract all paths.
+
+- If 1 vault found: confirm it with the user ("Found vault: <path> — use it? [Y/n]")
+- If multiple vaults: list them numbered and ask which one
+- If none / file missing: ask the user to paste their vault path
+
+### 2 — Save vault path to settings
+
+Once you have the vault path confirmed, call the updateSettingsForSource tool is NOT available here.
+
+Instead, use the Bash tool to write the vault path to twincode settings:
+
+Read the file \`~/.twincode/settings.json\` (or use \`{}\` if it doesn't exist), add \`"obsidianVault": "<confirmed vault path>"\`, then write it back.
+
+Example:
+\`\`\`bash
+# Read current settings
+cat ~/.twincode/settings.json 2>/dev/null || echo '{}'
+\`\`\`
+
+Then write back with obsidianVault added using the Write tool at path \`${join(homedir(), '.twincode', 'settings.json')}\`.
+
+### 3 — Tell the user
+
+Say:
+"✔ Vault configured: <path>
+
+**Restart twincode** for the tools to activate, then run **/twinit** again to scan your project."
+
+Do not proceed with any code scanning — just complete steps 1–3 above.`,
+      ],
+    })
+    return null
+  }
+
+  onDone('Scanning project for twincode brain…', {
     display: 'system',
     shouldQuery: true,
     metaMessages: [
-      `You are updating the twin brain for this project. Scan the codebase and sync brain notes in Obsidian using the twin-memory MCP.
+      `You are updating the twincode brain for this project. Scan the codebase and save brain notes using the save_knowledge tool.
 
 Working directory: "${cwd}"
+Vault: "${vault}"
 
 ## Step 1 — Check what brain already exists
 
-Call list_knowledge with cwd="${cwd}". If brain notes exist, call get_knowledge for each topic to read the current content. This is your baseline — you need to know what was already saved so you only update what has actually changed.
+Call list_knowledge (no args needed). If brain notes exist, call get_knowledge with each topic to read the current content. This is your baseline — only update what has actually changed.
 
-Also look at the session history already injected in your context (## Today's sessions and ## Project memory). Use it to understand what changed recently — new files added, patterns discovered, architecture decisions made.
+Also look at the session history already injected in your context (## Today's sessions and ## Project memory). Use it to understand what changed recently.
 
 ## Step 2 — Scan the codebase
 
@@ -28,7 +96,7 @@ Read these files (skip ones that won't give new info beyond what's already in th
 - Key source files — focus on areas that changed or weren't covered before
 
 **AI rules — read all that exist:**
-- TWIN.md, CLAUDE.md, CLAUDE.local.md
+- TWINCODE.md, CLAUDE.md, CLAUDE.local.md
 - .cursorrules, .cursor/rules/ (any .md files inside)
 - .github/copilot-instructions.md
 - .windsurfrules, .clinerules, .aiderignore
@@ -37,13 +105,12 @@ Read these files (skip ones that won't give new info beyond what's already in th
 **Design docs — read all that exist:**
 - DESIGN.md, design.md, docs/design.md
 - Any file with "design", "style", "brand", "ui", "ux" in the name under docs/ or root
-- Figma links or design system references in README or docs
 
 ## Step 3 — Update only what changed
 
 For each brain topic, compare what you found with what was already saved:
 - **If nothing changed** — skip it, don't rewrite
-- **If new info was discovered** — merge it into the existing note and call save_knowledge
+- **If new info was discovered** — call save_knowledge (it merges automatically)
 - **If a topic doesn't exist yet** — create it
 
 Topics to maintain:
@@ -52,54 +119,47 @@ Topics to maintain:
 **files** — map of important files and where to find things
 **commands** — build, test, lint, dev server commands (non-obvious ones)
 **rules** — all AI/coding rules consolidated from all rule files found
-**design** — design system, UI patterns, brand guidelines, Figma links (only if design docs exist)
+**design** — design system, UI patterns, brand guidelines (only if design docs exist)
 
-## Step 4 — Create or update TWIN.md
+## Step 4 — Create or update TWINCODE.md
 
-Check if TWIN.md exists at the project root (use Bash: test -f TWIN.md && echo exists || echo missing).
+Check if TWINCODE.md exists at the project root (use Bash: test -f TWINCODE.md && echo exists || echo missing).
 
-**If TWIN.md does not exist — create it.** Write a focused TWIN.md that captures what you just scanned. This should be better than what /init produces because you've already read everything deeply.
+**If TWINCODE.md does not exist — create it.** Write a focused TWINCODE.md that captures what you just scanned.
 
-Include only what twin would get wrong without it:
-- Build, test, lint, dev server commands — especially non-obvious ones (skip standard \`npm test\`, \`cargo test\` etc.)
+Include only what twincode would get wrong without it:
+- Build, test, lint, dev server commands — especially non-obvious ones
 - Code style rules that differ from language defaults
 - Non-obvious gotchas, architectural decisions, required env vars
 - Repo conventions (branch naming, PR process, commit style)
 - Key entry points and how data flows through the system
-- Important parts from any AI rule files found (RULES.md, .cursorrules, .github/copilot-instructions.md, etc.)
-
-Exclude: file lists, generic advice, anything twin already knows, standard commands obvious from package.json.
+- Important parts from any AI rule files found
 
 Prefix with:
 \`\`\`
-# TWIN.md
+# TWINCODE.md
 
-This file provides guidance to twin when working with code in this repository.
+This file provides guidance to twincode when working with code in this repository.
 \`\`\`
 
-**If TWIN.md already exists** — read it, then update only what's stale or missing. Don't rewrite things that are still accurate. Add a line for anything you discovered that isn't covered. If it's already comprehensive, leave it alone.
-
+**If TWINCODE.md already exists** — read it, then update only what's stale or missing.
 
 ## Step 5 — Update project README if needed
 
-If the project's context, stack, or goals changed since the last scan, call set_project_context with cwd="${cwd}" to update it. Otherwise skip.
+Call get_project_context to read the current README. If the project context, stack, or goals changed since the last scan, call set_project_context to update it. Otherwise skip.
 
-## Writing style — use save_knowledge structured fields
-
-save_knowledge generates proper Obsidian markdown from structured data. Pass the right fields — don't write raw markdown yourself:
+## save_knowledge field guide
 
 - **summary** — 1-2 sentences on what this note covers
-- **sections** — list of \`{heading, content}\` for each major topic area. Content supports inline markdown: **bold**, *italic*, ==highlight==, \`code\`, [[wikilink to another brain note]]
-- **items** — list of \`{item, detail}\` → table. Use for: file maps, route lists, command lists, package descriptions, anything A → B
-- **discoveries** — key insights → \`> [!info]\` blue callouts
-- **warnings** — gotchas, non-obvious constraints → \`> [!warning]\` orange callouts
-- **tips** — best practices, recommended approaches → \`> [!tip]\` cyan callouts
-- **questions** — open unknowns, things to investigate → \`> [!question]\` yellow callouts
-- **tasks** — things to explore or verify → \`- [ ]\` task list
-- **diagram** — mermaid body (no fences). Use for: architecture (graph TD), data flow (sequenceDiagram), git branching (gitGraph), ratios (pie)
-- **patterns** — list of \`{name, language, code}\` for real code examples → labelled fenced code blocks
-
-Use all fields that are relevant. A good brain note has at minimum: summary + sections + items or patterns. Use ==highlights== inside section content to mark the most important things.
+- **sections** — list of \`{heading, content}\` for each major topic area
+- **items** — list of \`{item, detail}\` → table (file maps, routes, command lists)
+- **discoveries** — key insights → \`> [!info]\` callouts
+- **warnings** — gotchas → \`> [!warning]\` callouts
+- **tips** — best practices → \`> [!tip]\` callouts
+- **questions** — open unknowns → \`> [!question]\` callouts
+- **tasks** — things to explore → task list
+- **diagram** — mermaid body (no fences)
+- **patterns** — list of \`{name, language, code}\` for code examples
 
 ## Rules
 - Be specific: actual file paths and real code beats vague descriptions

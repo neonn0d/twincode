@@ -7,7 +7,8 @@ import type { PermissionMode } from 'src/utils/permissions/PermissionMode.js';
 import { getIsRemoteMode, getKairosActive, getMainThreadAgentType, getOriginalCwd, getSdkBetas, getSessionId } from '../bootstrap/state.js';
 import { DEFAULT_OUTPUT_STYLE_NAME } from '../constants/outputStyles.js';
 import { useNotifications } from '../context/notifications.js';
-import { getTotalAPIDuration, getTotalCost, getTotalDuration, getTotalInputTokens, getTotalLinesAdded, getTotalLinesRemoved, getTotalOutputTokens } from '../cost-tracker.js';
+import { getTotalAPIDuration, getTotalCacheCreationInputTokens, getTotalCacheReadInputTokens, getTotalCost, getTotalDuration, getTotalInputTokens, getTotalLinesAdded, getTotalLinesRemoved, getTotalOutputTokens } from '../cost-tracker.js';
+import { formatTokens } from '../utils/format.js';
 import { useMainLoopModel } from '../hooks/useMainLoopModel.js';
 import { type ReadonlySettings, useSettings } from '../hooks/useSettings.js';
 import { Ansi, Box, Text } from '../ink.js';
@@ -31,7 +32,29 @@ export function statusLineShouldDisplay(settings: ReadonlySettings): boolean {
   // Assistant mode: statusline fields (model, permission mode, cwd) reflect the
   // REPL/daemon process, not what the agent child is actually running. Hide it.
   if (feature('KAIROS') && getKairosActive()) return false;
-  return settings?.statusLine !== undefined;
+  // Show by default — falls back to twin's built-in stats line if no user command.
+  return true;
+}
+
+// Pi-style stats line shown when the user hasn't configured a custom statusLine command.
+// Format: ↑in ↓out Rcache-r Wcache-w $cost  ctx%/window • model[ • thinking]
+function buildDefaultStatusLineText(modelDisplayName: string, currentUsage: number, contextWindowSize: number, contextPercentValue: number): string {
+  const parts: string[] = [];
+  const inputTok = getTotalInputTokens();
+  const outputTok = getTotalOutputTokens();
+  const cacheRead = getTotalCacheReadInputTokens();
+  const cacheWrite = getTotalCacheCreationInputTokens();
+  const cost = getTotalCost();
+  if (inputTok) parts.push(`↑${formatTokens(inputTok)}`);
+  if (outputTok) parts.push(`↓${formatTokens(outputTok)}`);
+  if (cacheRead) parts.push(`R${formatTokens(cacheRead)}`);
+  if (cacheWrite) parts.push(`W${formatTokens(cacheWrite)}`);
+  if (cost > 0) parts.push(`$${cost.toFixed(3)}`);
+  if (contextWindowSize > 0 && currentUsage > 0) {
+    parts.push(`${contextPercentValue.toFixed(1)}%/${formatTokens(contextWindowSize)}`);
+  }
+  parts.push(`• ${modelDisplayName}`);
+  return parts.join(' ');
 }
 function buildStatusLineCommandInput(permissionMode: PermissionMode, exceeds200kTokens: boolean, settings: ReadonlySettings, messages: Message[], addedDirs: string[], mainLoopModel: ModelName, vimMode?: VimMode): StatusLineCommandInput {
   const agentType = getMainThreadAgentType();
@@ -306,6 +329,22 @@ function StatusLineInner({
   // Get padding from settings or default to 0
   const paddingX = settings?.statusLine?.padding ?? 0;
 
+  // Build the default twin stats line when no user statusLine command is set.
+  // Reads global cost-tracker state — re-renders on every assistant message via lastAssistantMessageId.
+  const hasUserStatusLine = settings?.statusLine?.command !== undefined;
+  let defaultStatusLineText: string | null = null;
+  if (!hasUserStatusLine) {
+    const runtimeModel = getRuntimeMainLoopModel({
+      permissionMode,
+      mainLoopModel,
+      exceeds200kTokens: previousStateRef.current.exceeds200kTokens
+    });
+    const currentUsage = getCurrentUsage(messagesRef.current ?? []);
+    const contextWindowSize = getContextWindowForModel(runtimeModel, getSdkBetas());
+    const contextPercentages = calculateContextPercentages(currentUsage, contextWindowSize);
+    defaultStatusLineText = buildDefaultStatusLineText(renderModelName(runtimeModel), currentUsage, contextWindowSize, contextPercentages.used);
+  }
+
   // StatusLine must have stable height in fullscreen — the footer is
   // flexShrink:0 so a 0→1 row change when the command finishes steals
   // a row from ScrollBox and shifts content. Reserve the row while loading
@@ -313,7 +352,7 @@ function StatusLineInner({
   return <Box paddingX={paddingX} gap={2}>
       {statusLineText ? <Text dimColor wrap="truncate">
           <Ansi>{statusLineText}</Ansi>
-        </Text> : isFullscreenEnvEnabled() ? <Text> </Text> : null}
+        </Text> : defaultStatusLineText ? <Text dimColor wrap="truncate">{defaultStatusLineText}</Text> : isFullscreenEnvEnabled() ? <Text> </Text> : null}
     </Box>;
 }
 

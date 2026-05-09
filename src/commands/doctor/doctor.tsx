@@ -84,7 +84,7 @@ function TwinDoctor({ onDone }: { onDone: () => void }) {
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Text bold>twin doctor</Text>
+      <Text bold>twincode doctor</Text>
       <Box flexDirection="column" marginTop={1}>
         {checks.map(c => (
           <Box key={c.label}>

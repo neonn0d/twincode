@@ -11,7 +11,7 @@ export function resolveClaudeConfigHomeDir(options?: {
   }
 
   const homeDir = options?.homeDir ?? homedir()
-  const openClaudeDir = join(homeDir, '.twin')
+  const openClaudeDir = join(homeDir, '.twincode')
 
   return openClaudeDir.normalize('NFC')
 }

@@ -7,7 +7,7 @@ import type { LocalJSXCommandContext } from '../../commands.js'
 import type { LocalJSXCommandOnDone } from '../../types/command.js'
 import { gracefulShutdownSync } from '../../utils/gracefulShutdown.js'
 
-const SETTINGS_PATH = join(homedir(), '.twin', 'settings.json')
+const SETTINGS_PATH = join(homedir(), '.twincode', 'settings.json')
 
 export async function call(
   onDone: LocalJSXCommandOnDone,

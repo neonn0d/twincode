@@ -384,7 +384,7 @@ const externalTips: Tip[] = [
   {
     id: 'custom-commands',
     content: async () =>
-      'Create skills by adding .md files to .twin/skills/ in your project or ~/.twin/skills/ for skills that work in any project',
+      'Create skills by adding .md files to .twincode/skills/ in your project or ~/.twincode/skills/ for skills that work in any project',
     cooldownSessions: 15,
     async isRelevant() {
       const config = getGlobalConfig()

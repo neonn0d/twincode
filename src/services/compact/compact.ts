@@ -439,7 +439,13 @@ export async function compactConversation(
       true,
     )
 
-    const compactPrompt = getCompactPrompt(customInstructions)
+    // Iterative recompaction: if the conversation already starts with a prior
+    // compaction summary boundary, switch to the "update" prompt variant so the
+    // model refines the existing summary instead of resummarizing it from scratch.
+    const firstMsg = messages[0]
+    const hasPreviousSummary =
+      firstMsg?.type === 'user' && firstMsg.isCompactSummary === true
+    const compactPrompt = getCompactPrompt(customInstructions, hasPreviousSummary)
     const summaryRequest = createUserMessage({
       content: compactPrompt,
     })

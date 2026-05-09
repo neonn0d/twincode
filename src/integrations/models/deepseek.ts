@@ -16,7 +16,7 @@ export default [
       supportsReasoning: false,
       supportsPreciseTokenCount: false,
     },
-    contextWindow: 64_000,
+    contextWindow: 128_000,
     maxOutputTokens: 8_192,
   }),
   defineModel({
@@ -34,7 +34,7 @@ export default [
       supportsReasoning: true,
       supportsPreciseTokenCount: false,
     },
-    contextWindow: 64_000,
+    contextWindow: 128_000,
     maxOutputTokens: 32_768,
   }),
   defineModel({

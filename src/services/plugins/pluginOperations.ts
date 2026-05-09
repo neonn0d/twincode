@@ -487,7 +487,7 @@ export async function uninstallPluginOp(
       if (actualScope === 'project') {
         return {
           success: false,
-          message: `Plugin "${plugin}" is enabled at project scope (.twin/settings.json, shared with your team). To disable just for you: twin plugin disable ${plugin} --scope local`,
+          message: `Plugin "${plugin}" is enabled at project scope (.twincode/settings.json, shared with your team). To disable just for you: twincode plugin disable ${plugin} --scope local`,
         }
       }
       return {

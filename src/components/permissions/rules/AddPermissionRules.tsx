@@ -32,7 +32,7 @@ export function optionForPermissionSaveDestination(saveDestination: EditableSett
     case 'userSettings':
       return {
         label: 'User settings',
-        description: `Saved in ~/.twin/settings.json`,
+        description: `Saved in ~/.twincode/settings.json`,
         value: saveDestination
       };
   }

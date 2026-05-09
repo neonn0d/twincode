@@ -166,7 +166,7 @@ export function Doctor(t0) {
       getDoctorDiagnostic().then(setDiagnostic);
       (async () => {
         const userAgentsDir = join(getClaudeConfigHomeDir(), "agents");
-        const projectAgentsDir = join(getOriginalCwd(), ".twin", "agents");
+        const projectAgentsDir = join(getOriginalCwd(), ".twincode", "agents");
         const {
           activeAgents,
           allAgents,
@@ -222,7 +222,7 @@ export function Doctor(t0) {
   let t7;
   if ($[11] !== onDone) {
     t7 = () => {
-      onDone("twin diagnostics dismissed", {
+      onDone("twincode diagnostics dismissed", {
         display: "system"
       });
     };

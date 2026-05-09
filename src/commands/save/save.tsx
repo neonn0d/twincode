@@ -9,14 +9,14 @@ export const call: LocalJSXCommandCall = async (onDone) => {
   const cwd = process.cwd()
   const rel = path.relative(os.homedir(), cwd)
   const today = new Date().toISOString().slice(0, 10)
-  const readmeNote = `twin/${rel}/README`
+  const readmeNote = `twincode/${rel}/README`
 
   // Read today's session file so the AI has full-day context when writing
   const settings = getInitialSettings() as Record<string, unknown>
   const vault = settings.obsidianVault as string | undefined
   let todayContext = ''
   if (vault) {
-    const sessionPath = path.join(vault, 'twin', rel, 'sessions', `${today}.md`)
+    const sessionPath = path.join(vault, 'twincode', rel, 'sessions', `${today}.md`)
     if (existsSync(sessionPath)) {
       try {
         const content = readFileSync(sessionPath, 'utf8').trim()
@@ -44,25 +44,18 @@ Be a journalist, not a copywriter. Every word must earn its place:
 
 Omit any field that has nothing real to say. A lean accurate log beats a padded complete one.
 
-Call log_session with cwd="${cwd}" using those fields.
+Call log_session (no cwd needed — it uses the current directory automatically) using those fields.
 
 ## README
 
-For \`${readmeNote}\`:
 - set_project_context — only if something genuinely new about the project came up this session
 - set_next_steps — only if a concrete next action emerged
 
 ## Brain
 
-If something new was discovered (architecture detail, pattern, gotcha, file location), call save_knowledge with cwd="${cwd}". Merge into existing brain note if one exists for that topic. Include "Session: ${today}" in discoveries to track origin. Skip if nothing new.
+If something new was discovered (architecture detail, pattern, gotcha, file location), call save_knowledge (no cwd needed). Merge into existing brain note if one exists for that topic. Include "Session: ${today}" in discoveries to track origin. Skip if nothing new.
 
-## Missing project files
-
-Check: \`ls DESIGN.md RULES.md 2>/dev/null\`
-
-If DESIGN.md missing → ask "Want a DESIGN.md?" (Yes / Skip). If yes, ask what they want in it, then write it lean.
-If RULES.md missing → ask "Want a RULES.md?" (Yes / Skip). If yes, ask about conventions and write it as a clear rule list.
-If both exist, skip entirely.`,
+`,
     ],
   })
   return null

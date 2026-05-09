@@ -53,7 +53,7 @@ export function printStartupScreen(modelOverride?: string): void {
   const ORANGE = rgb(255, 160, 60)
 
   const pathBracket = atHome ? `-[~]` : ''
-  const row1 = `${DARK_BLUE}┌──(${RESET}${BOLD}${BLUE}twin${RESET} ${DIM}${GRAY}${version}  model:${RESET}${GRAY}${p.model}${DARK_BLUE})${RESET}${DARK_BLUE}${pathBracket}${RESET}`
+  const row1 = `${DARK_BLUE}┌──(${RESET}${BOLD}${BLUE}twincode${RESET} ${DIM}${GRAY}${version}  model:${RESET}${GRAY}${p.model}${DARK_BLUE})${RESET}${DARK_BLUE}${pathBracket}${RESET}`
   let row2 = `${DARK_BLUE}└──╼${RESET}`
   if (!atHome) row2 += `${DARK_BLUE}[${RESET}${GRAY}${rawCwd}${DARK_BLUE}]${RESET}`
   if (git) {

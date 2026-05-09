@@ -37,28 +37,28 @@ export function MemoryStep() {
   let t1;
   if ($[1] !== isUserScope) {
     t1 = isUserScope ? [{
-      label: "User scope (~/.twin/agent-memory/) (Recommended)",
+      label: "User scope (~/.twincode/agent-memory/) (Recommended)",
       value: "user"
     }, {
       label: "None (no persistent memory)",
       value: "none"
     }, {
-      label: "Project scope (.twin/agent-memory/)",
+      label: "Project scope (.twincode/agent-memory/)",
       value: "project"
     }, {
-      label: "Local scope (.twin/agent-memory-local/)",
+      label: "Local scope (.twincode/agent-memory-local/)",
       value: "local"
     }] : [{
-      label: "Project scope (.twin/agent-memory/) (Recommended)",
+      label: "Project scope (.twincode/agent-memory/) (Recommended)",
       value: "project"
     }, {
       label: "None (no persistent memory)",
       value: "none"
     }, {
-      label: "User scope (~/.twin/agent-memory/)",
+      label: "User scope (~/.twincode/agent-memory/)",
       value: "user"
     }, {
-      label: "Local scope (.twin/agent-memory-local/)",
+      label: "Local scope (.twincode/agent-memory-local/)",
       value: "local"
     }];
     $[1] = isUserScope;

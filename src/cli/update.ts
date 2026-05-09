@@ -262,7 +262,7 @@ export async function update() {
 
       if (result.latestVersion === MACRO.DISPLAY_VERSION) {
         writeToStdout(
-          chalk.green(`twin is up to date (${MACRO.DISPLAY_VERSION})`) + '\n',
+          chalk.green(`twincode is up to date (${MACRO.DISPLAY_VERSION})`) + '\n',
         )
       } else {
         writeToStdout(
@@ -276,7 +276,7 @@ export async function update() {
     } catch (error) {
       process.stderr.write('Error: Failed to install native update\n')
       process.stderr.write(String(error) + '\n')
-      process.stderr.write('Try running "twin doctor" for diagnostics\n')
+      process.stderr.write('Try running "twincode doctor" for diagnostics\n')
       await gracefulShutdown(1)
     }
   }
@@ -332,7 +332,7 @@ export async function update() {
   // Check if versions match exactly, including any build metadata (like SHA)
   if (latestVersion === MACRO.DISPLAY_VERSION) {
     writeToStdout(
-      chalk.green(`twin is up to date (${MACRO.DISPLAY_VERSION})`) + '\n',
+      chalk.green(`twincode is up to date (${MACRO.DISPLAY_VERSION})`) + '\n',
     )
     await gracefulShutdown(0)
   }
@@ -410,12 +410,12 @@ export async function update() {
       if (useLocalUpdate) {
         process.stderr.write('Try manually updating with:\n')
         process.stderr.write(
-          `  cd ~/.twin/local && npm update ${MACRO.PACKAGE_URL}\n`,
+          `  cd ~/.twincode/local && npm update ${MACRO.PACKAGE_URL}\n`,
         )
       } else {
         process.stderr.write('Try running with sudo or fix npm permissions\n')
         process.stderr.write(
-          'Or consider using native installation with: twin install\n',
+          'Or consider using native installation with: twincode install\n',
         )
       }
       await gracefulShutdown(1)
@@ -425,11 +425,11 @@ export async function update() {
       if (useLocalUpdate) {
         process.stderr.write('Try manually updating with:\n')
         process.stderr.write(
-          `  cd ~/.twin/local && npm update ${MACRO.PACKAGE_URL}\n`,
+          `  cd ~/.twincode/local && npm update ${MACRO.PACKAGE_URL}\n`,
         )
       } else {
         process.stderr.write(
-          'Or consider using native installation with: twin install\n',
+          'Or consider using native installation with: twincode install\n',
         )
       }
       await gracefulShutdown(1)

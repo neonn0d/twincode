@@ -300,7 +300,7 @@ export function getRelativeSettingsFilePathForSource(
 ): string {
   switch (source) {
     case 'projectSettings':
-      return '.twin/settings.json'
+      return '.twincode/settings.json'
     case 'localSettings':
       return '.localcode/settings.local.json'
   }

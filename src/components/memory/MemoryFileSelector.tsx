@@ -50,7 +50,7 @@ export function MemoryFileSelector(t0) {
   } = t0;
   const existingMemoryFiles = use(getMemoryFiles());
   const originalCwd = getOriginalCwd();
-  const userMemoryPath = join(getClaudeConfigHomeDir(), "TWIN.md");
+  const userMemoryPath = join(getClaudeConfigHomeDir(), "TWINCODE.md");
   const projectMemoryPath = getProjectMemoryPathForSelector(existingMemoryFiles, originalCwd);
   const projectMemoryFileName = basename(projectMemoryPath);
   const hasUserMemory = existingMemoryFiles.some(f => f.path === userMemoryPath);
@@ -90,7 +90,7 @@ export function MemoryFileSelector(t0) {
     let description;
     const isGit = projectIsInGitRepo(originalCwd);
     if (file.type === "User" && !file.isNested) {
-      description = "Saved in ~/.twin/TWIN.md";
+      description = "Saved in ~/.twincode/TWINCODE.md";
     } else {
       if (file.type === "Project" && !file.isNested && file.path === projectMemoryPath) {
         description = `${isGit ? "Checked in at" : "Saved in"} ./${projectMemoryFileName}`;
@@ -152,7 +152,7 @@ export function MemoryFileSelector(t0) {
       }
     }
   }
-  memoryOptions.push(...folderOptions);
+  memoryOptions.push(...folderOptions)
   let t1;
   if ($[2] !== memoryOptions) {
     t1 = lastSelectedPath && memoryOptions.some(_temp4) ? lastSelectedPath : memoryOptions[0]?.value || "";
