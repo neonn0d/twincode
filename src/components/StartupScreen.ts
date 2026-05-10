@@ -29,7 +29,7 @@ function getGitInfo(): { branch: string; dirty: boolean } | null {
 export function detectProvider(modelOverride?: string): { name: string; model: string; baseUrl: string } {
   const settings = getSettings_DEPRECATED() || {}
   const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1'
-  const model = modelOverride || process.env.OPENAI_MODEL || (settings as Record<string, unknown>).model as string || 'deepseek-chat'
+  const model = modelOverride || process.env.OPENAI_MODEL || 'deepseek-chat'
   const name = baseUrl.includes('deepseek.com') ? 'DeepSeek' : 'OpenAI-compatible'
   return { name, model, baseUrl }
 }

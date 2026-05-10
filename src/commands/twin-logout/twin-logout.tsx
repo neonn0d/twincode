@@ -18,6 +18,8 @@ export async function call(
       const config = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
       if (config.env) {
         delete config.env.OPENAI_API_KEY
+        delete config.env.OPENAI_BASE_URL
+        delete config.env.OPENAI_MODEL
       }
       writeFileSync(SETTINGS_PATH, JSON.stringify(config, null, 2))
     } catch {}

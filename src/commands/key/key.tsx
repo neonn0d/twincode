@@ -16,13 +16,8 @@ export async function call(
   const newKey = (args ?? '').trim()
 
   if (!newKey) {
-    onDone('Usage: /key <your-deepseek-api-key>')
-    return <Text>Usage: /key &lt;your-deepseek-api-key&gt;</Text>
-  }
-
-  if (!newKey.startsWith('sk-')) {
-    onDone('Invalid key — DeepSeek keys start with sk-')
-    return <Text color="red">Invalid key — DeepSeek keys start with sk-</Text>
+    onDone('Usage: /key <your-api-key>')
+    return <Text>Usage: /key &lt;your-api-key&gt;</Text>
   }
 
   let config: Record<string, unknown> = {}

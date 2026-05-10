@@ -12,12 +12,11 @@ process.title = 'twin'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const distPath = join(__dirname, '..', 'dist', 'cli.mjs')
-const MCP_SERVER_PATH = join(__dirname, '..', 'mcp', 'twin-memory.py')
+const MCP_SERVER_PATH = join(__dirname, '..', 'mcp', 'server.js')
 
 const TWIN_DIR = join(homedir(), '.twin')
 const SETTINGS_PATH = join(TWIN_DIR, 'settings.json')
-const TWIN_JSON_PATH = join(homedir(), '.twin.json')
-const MCP_VENV_PATH = join(TWIN_DIR, 'mcp-venv')
+const CLAUDE_JSON_PATH = join(homedir(), '.claude.json')
 
 const ESC = '\x1b['
 const RESET = `${ESC}0m`
@@ -128,27 +127,24 @@ function setupMcpVenv() {
   }
 }
 
-// Register MCP server in ~/.twin.json
+// Register MCP server in ~/.claude.json
 function registerMcpServer(vaultPath) {
   let config = {}
-  if (existsSync(TWIN_JSON_PATH)) {
-    try { config = JSON.parse(readFileSync(TWIN_JSON_PATH, 'utf8')) } catch {}
+  if (existsSync(CLAUDE_JSON_PATH)) {
+    try { config = JSON.parse(readFileSync(CLAUDE_JSON_PATH, 'utf8')) } catch {}
   }
   if (!config.mcpServers) config.mcpServers = {}
-  config.mcpServers['twin-memory'] = {
-    type: 'stdio',
-    command: `${MCP_VENV_PATH}/bin/python`,
+  config.mcpServers['twin'] = {
+    command: 'node',
     args: [MCP_SERVER_PATH],
     env: { OBSIDIAN_VAULT: vaultPath },
     alwaysAllow: [
-      'get_project_context', 'log_session', 'set_next_steps', 'set_project_context',
-      'save_knowledge', 'get_knowledge', 'list_knowledge', 'search_knowledge',
-      'list_notes', 'read_note', 'create_note', 'edit_note', 'append_to_note',
-      'search_notes', 'daily_note', 'list_tags', 'list_folders', 'move_note',
-      'note_info', 'delete_note',
+      'get_project_context', 'log_session', 'update_progress', 'session_start', 'session_end',
+      'save_knowledge', 'get_knowledge', 'list_knowledge', 'search_knowledge', 'delete_knowledge',
+      'set_next_steps', 'set_project_context',
     ],
   }
-  writeFileSync(TWIN_JSON_PATH, JSON.stringify(config, null, 2))
+  writeFileSync(CLAUDE_JSON_PATH, JSON.stringify(config, null, 2))
 }
 
 async function runOnboarding() {
@@ -171,17 +167,19 @@ async function runOnboarding() {
   // Step 1: Provider
   console.log(`  ${YELLOW}Step 1/3${RESET} ${BOLD}Choose your AI provider${RESET}`)
   console.log('')
-  console.log(`  ${ACCENT}1${RESET}  DeepSeek   ${DIM}Best for coding · 128K · ~$2/mo${RESET}  ${GREEN}platform.deepseek.com${RESET}`)
-  console.log(`  ${ACCENT}2${RESET}  Custom     ${DIM}Any OpenAI-compatible API${RESET}`)
+  console.log(`  ${ACCENT}1${RESET}  DeepSeek     ${DIM}Best for coding · 128K · ~$2/mo${RESET}  ${GREEN}platform.deepseek.com${RESET}`)
+  console.log(`  ${ACCENT}2${RESET}  OpenRouter   ${DIM}Any model · one API key${RESET}          ${GREEN}openrouter.ai${RESET}`)
+  console.log(`  ${ACCENT}3${RESET}  Custom       ${DIM}Any OpenAI-compatible API${RESET}`)
   console.log('')
 
   let provider = ''
   while (!provider) {
-    process.stdout.write(`  ${ACCENT}›${RESET} Select provider [1-2]: `)
+    process.stdout.write(`  ${ACCENT}›${RESET} Select provider [1-3]: `)
     const key = (await readLine(false)).trim()
     if (key === '1') provider = 'deepseek'
-    else if (key === '2') provider = 'custom'
-    else console.log(`  ${RED}Pick 1 or 2${RESET}`)
+    else if (key === '2') provider = 'openrouter'
+    else if (key === '3') provider = 'custom'
+    else console.log(`  ${RED}Pick 1, 2 or 3${RESET}`)
   }
   console.log('')
 
@@ -212,6 +210,43 @@ async function runOnboarding() {
       else console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
     }
     providerEnv = { OPENAI_BASE_URL: 'https://api.deepseek.com/v1', OPENAI_API_KEY: apiKey, OPENAI_MODEL: model }
+  } else if (provider === 'openrouter') {
+    console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}OpenRouter API Key${RESET}`)
+    console.log(`  ${GRAY}Get yours at: openrouter.ai/keys${RESET}`)
+    console.log('')
+    while (!apiKey.startsWith('sk-or-')) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Paste your API key: `)
+      apiKey = (await readLine(true)).trim()
+      if (!apiKey.startsWith('sk-or-')) console.log(`  ${RED}Invalid key — OpenRouter keys start with sk-or-${RESET}`)
+    }
+    console.log(`  ${GREEN}✔ Key saved${RESET}`)
+    console.log('')
+
+    console.log(`  ${YELLOW}Step 2b/3${RESET} ${BOLD}Choose your model${RESET}`)
+    console.log('')
+    console.log(`  ${ACCENT}1${RESET}  deepseek/deepseek-chat-v3-0324      ${DIM}Best for coding · cheap${RESET}   ${GREEN}[recommended]${RESET}`)
+    console.log(`  ${ACCENT}2${RESET}  anthropic/claude-sonnet-4-5         ${DIM}Claude · smart${RESET}`)
+    console.log(`  ${ACCENT}3${RESET}  google/gemini-2.0-flash-001         ${DIM}Gemini · fast${RESET}`)
+    console.log(`  ${ACCENT}4${RESET}  meta-llama/llama-3.3-70b-instruct   ${DIM}Llama · open${RESET}`)
+    console.log(`  ${ACCENT}5${RESET}  Custom                              ${DIM}Enter model ID manually${RESET}`)
+    console.log('')
+    const orModelMap = {
+      '1': 'deepseek/deepseek-chat-v3-0324',
+      '2': 'anthropic/claude-sonnet-4-5',
+      '3': 'google/gemini-2.0-flash-001',
+      '4': 'meta-llama/llama-3.3-70b-instruct',
+    }
+    while (!model) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Select model [1-5]: `)
+      const key = (await readLine(false)).trim()
+      if (orModelMap[key]) model = orModelMap[key]
+      else if (key === '5') {
+        process.stdout.write(`  ${ACCENT}›${RESET} Model ID (e.g. mistralai/mistral-7b-instruct): `)
+        model = (await readLine(false)).trim()
+        if (!model) { model = ''; console.log(`  ${RED}Model ID required${RESET}`) }
+      } else console.log(`  ${RED}Pick 1–5${RESET}`)
+    }
+    providerEnv = { OPENAI_BASE_URL: 'https://openrouter.ai/api/v1', OPENAI_API_KEY: apiKey, OPENAI_MODEL: model }
   } else {
     // Custom OpenAI-compatible provider
     console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}Base URL${RESET}`)
@@ -333,26 +368,18 @@ async function runOnboarding() {
     permissions: {
       allow: [
         'Read(**)',
-        'mcp__twin-memory__get_project_context',
-        'mcp__twin-memory__log_session',
-        'mcp__twin-memory__set_next_steps',
-        'mcp__twin-memory__set_project_context',
-        'mcp__twin-memory__save_knowledge',
-        'mcp__twin-memory__get_knowledge',
-        'mcp__twin-memory__list_knowledge',
-        'mcp__twin-memory__search_knowledge',
-        'mcp__twin-memory__list_notes',
-        'mcp__twin-memory__read_note',
-        'mcp__twin-memory__create_note',
-        'mcp__twin-memory__edit_note',
-        'mcp__twin-memory__append_to_note',
-        'mcp__twin-memory__search_notes',
-        'mcp__twin-memory__daily_note',
-        'mcp__twin-memory__list_tags',
-        'mcp__twin-memory__list_folders',
-        'mcp__twin-memory__move_note',
-        'mcp__twin-memory__note_info',
-        'mcp__twin-memory__delete_note',
+        'mcp__twin__get_project_context',
+        'mcp__twin__log_session',
+        'mcp__twin__update_progress',
+        'mcp__twin__session_start',
+        'mcp__twin__session_end',
+        'mcp__twin__set_next_steps',
+        'mcp__twin__set_project_context',
+        'mcp__twin__save_knowledge',
+        'mcp__twin__get_knowledge',
+        'mcp__twin__list_knowledge',
+        'mcp__twin__search_knowledge',
+        'mcp__twin__delete_knowledge',
       ],
     },
   }, null, 2))
@@ -366,13 +393,26 @@ let needsOnboarding = true
 if (existsSync(SETTINGS_PATH)) {
   try {
     const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
-    if (s?.env?.OPENAI_API_KEY?.startsWith('sk-')) needsOnboarding = false
+    if (s?.env?.OPENAI_BASE_URL && s?.env?.OPENAI_MODEL) needsOnboarding = false
   } catch {}
 }
 
 if (needsOnboarding) await runOnboarding()
 
+// Apply provider env from settings before the app starts
+if (existsSync(SETTINGS_PATH)) {
+  try {
+    const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
+    if (s?.env) {
+      for (const [k, v] of Object.entries(s.env)) {
+        if (typeof v === 'string') process.env[k] = v
+      }
+    }
+  } catch {}
+}
+
 process.env.CLAUDE_CODE_USE_OPENAI = '1'
+process.env.LOCALCODE_ROOT = join(__dirname, '..')
 
 // Migrate: ensure settings.json has twin-memory permissions for all users
 if (existsSync(SETTINGS_PATH)) {
@@ -380,18 +420,11 @@ if (existsSync(SETTINGS_PATH)) {
     const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
     const required = [
       'Read(**)',
-      'mcp__twin-memory__get_project_context', 'mcp__twin-memory__log_session',
-      'mcp__twin-memory__set_next_steps', 'mcp__twin-memory__set_project_context',
-      'mcp__twin-memory__save_knowledge', 'mcp__twin-memory__get_knowledge',
-      'mcp__twin-memory__list_knowledge',
-      'mcp__twin-memory__search_knowledge',
-      'mcp__twin-memory__list_notes',
-      'mcp__twin-memory__read_note', 'mcp__twin-memory__create_note',
-      'mcp__twin-memory__edit_note', 'mcp__twin-memory__append_to_note',
-      'mcp__twin-memory__search_notes', 'mcp__twin-memory__daily_note',
-      'mcp__twin-memory__list_tags', 'mcp__twin-memory__list_folders',
-      'mcp__twin-memory__move_note', 'mcp__twin-memory__note_info',
-      'mcp__twin-memory__delete_note',
+      'mcp__twin__get_project_context', 'mcp__twin__log_session',
+      'mcp__twin__update_progress', 'mcp__twin__session_start', 'mcp__twin__session_end',
+      'mcp__twin__set_next_steps', 'mcp__twin__set_project_context',
+      'mcp__twin__save_knowledge', 'mcp__twin__get_knowledge',
+      'mcp__twin__list_knowledge', 'mcp__twin__search_knowledge', 'mcp__twin__delete_knowledge',
     ]
     const existing = s?.permissions?.allow ?? []
     const missing = required.filter(r => !existing.includes(r))
@@ -403,24 +436,22 @@ if (existsSync(SETTINGS_PATH)) {
   } catch {}
 }
 
-// Migrate: ensure twin-memory alwaysAllow has all required tools (merge-missing)
-if (existsSync(TWIN_JSON_PATH)) {
+// Migrate: ensure twin MCP alwaysAllow has all required tools (merge-missing)
+if (existsSync(CLAUDE_JSON_PATH)) {
   try {
-    const config = JSON.parse(readFileSync(TWIN_JSON_PATH, 'utf8'))
-    const server = config?.mcpServers?.['twin-memory']
+    const config = JSON.parse(readFileSync(CLAUDE_JSON_PATH, 'utf8'))
+    const server = config?.mcpServers?.['twin']
     if (server) {
       const alwaysRequired = [
-        'get_project_context', 'log_session', 'set_next_steps', 'set_project_context',
-        'save_knowledge', 'get_knowledge', 'list_knowledge', 'search_knowledge',
-        'list_notes', 'read_note', 'create_note', 'edit_note', 'append_to_note',
-        'search_notes', 'daily_note', 'list_tags', 'list_folders', 'move_note',
-        'note_info', 'delete_note',
+        'get_project_context', 'log_session', 'update_progress', 'session_start', 'session_end',
+        'save_knowledge', 'get_knowledge', 'list_knowledge', 'search_knowledge', 'delete_knowledge',
+        'set_next_steps', 'set_project_context',
       ]
       const existingAllow = server.alwaysAllow ?? []
       const missingAllow = alwaysRequired.filter(t => !existingAllow.includes(t))
       if (missingAllow.length > 0) {
         server.alwaysAllow = [...existingAllow, ...missingAllow]
-        writeFileSync(TWIN_JSON_PATH, JSON.stringify(config, null, 2))
+        writeFileSync(CLAUDE_JSON_PATH, JSON.stringify(config, null, 2))
       }
     }
   } catch {}
@@ -430,5 +461,7 @@ if (!existsSync(distPath)) {
   console.error('twin: run "npm run build" first')
   process.exit(1)
 }
+
+if (process.stdout.isTTY) process.stdout.write('\x1b[2J\x1b[H')
 
 await import(pathToFileURL(distPath).href)

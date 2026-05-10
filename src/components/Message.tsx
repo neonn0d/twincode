@@ -122,7 +122,11 @@ function MessageImpl(t0) {
           } else {
             t4 = $[37];
           }
-          t3 = message.message.content.map(t4);
+          t3 = [...message.message.content].sort((a, b) => {
+            const aT = a.type === 'thinking' || a.type === 'redacted_thinking' ? 0 : 1;
+            const bT = b.type === 'thinking' || b.type === 'redacted_thinking' ? 0 : 1;
+            return aT - bT;
+          }).map(t4);
           $[5] = addMargin;
           $[6] = commands;
           $[7] = inProgressToolUseIDs;
@@ -538,6 +542,7 @@ function AssistantMessageBlock(t0) {
       }
     case "thinking":
       {
+        if (!verbose && !isTranscriptMode) return null;
         const isLastThinking = !lastThinkingBlockId || thinkingBlockId === lastThinkingBlockId;
         // Collapsed: hide all but the last thinking block (show one "∴ Thinking" line)
         // Expanded (transcript/verbose): show all thinking blocks

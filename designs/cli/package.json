@@ -1,0 +1,11 @@
+{
+  "name": "stylepick",
+  "version": "0.1.0",
+  "description": "Pick a brand style, get production CSS + AI prompts",
+  "bin": {
+    "stylepick": "./index.js"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.0.0"
+  }
+}
