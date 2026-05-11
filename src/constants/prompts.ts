@@ -433,6 +433,8 @@ function getSimpleToneAndStyleSection(): string {
     process.env.USER_TYPE === 'ant'
       ? null
       : `Your responses should be short and concise.`,
+    `Never use em dashes (—) in any response. Use a comma, period, or rewrite the sentence instead.`,
+    `Avoid AI slop: no filler phrases like "Certainly!", "Great question!", "Absolutely!", "Of course!", "Sure!", "I'd be happy to", "I hope this helps", "Feel free to", or any similarly hollow opener or closer. No excessive hedging. No unnecessary affirmations. Write like a person, not a chatbot.`,
     `When referencing specific functions or pieces of code include the pattern file_path:line_number to allow the user to easily navigate to the source code location.`,
     `When referencing GitHub issues or pull requests, use the owner/repo#123 format (e.g. anthropics/claude-code#100) so they render as clickable links.`,
     `Do not use a colon before tool calls. Your tool calls may not be shown directly in the output, so text like "Let me read the file:" followed by a read tool call should just be "Let me read the file." with a period.`,
