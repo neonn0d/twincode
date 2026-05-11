@@ -7,14 +7,20 @@ import { fileURLToPath, pathToFileURL } from 'url'
 import { execSync } from 'child_process'
 import { LOGO_LINES } from '../src/components/logoArt.js'
 
-delete process.env.ANTHROPIC_API_KEY
+// Wipe all provider env vars so no stale shell values leak in
+for (const k of [
+  'ANTHROPIC_API_KEY', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_MODEL',
+  'OPENAI_API_KEY', 'OPENAI_BASE_URL', 'OPENAI_MODEL', 'OPENAI_API_FORMAT',
+  'CLAUDE_CODE_USE_OPENAI', 'CLAUDE_CODE_USE_GEMINI',
+  'GEMINI_API_KEY', 'GEMINI_MODEL',
+]) delete process.env[k]
 process.title = 'twin'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const distPath = join(__dirname, '..', 'dist', 'cli.mjs')
 const MCP_SERVER_PATH = join(__dirname, '..', 'mcp', 'server.js')
 
-const TWIN_DIR = join(homedir(), '.twin')
+const TWIN_DIR = join(homedir(), '.twincode')
 const SETTINGS_PATH = join(TWIN_DIR, 'settings.json')
 const CLAUDE_JSON_PATH = join(homedir(), '.claude.json')
 
@@ -169,17 +175,19 @@ async function runOnboarding() {
   console.log('')
   console.log(`  ${ACCENT}1${RESET}  DeepSeek     ${DIM}Best for coding · 128K · ~$2/mo${RESET}  ${GREEN}platform.deepseek.com${RESET}`)
   console.log(`  ${ACCENT}2${RESET}  OpenRouter   ${DIM}Any model · one API key${RESET}          ${GREEN}openrouter.ai${RESET}`)
-  console.log(`  ${ACCENT}3${RESET}  Custom       ${DIM}Any OpenAI-compatible API${RESET}`)
+  console.log(`  ${ACCENT}3${RESET}  Evolink      ${DIM}Claude models · Anthropic API${RESET}    ${GREEN}evolink.ai${RESET}`)
+  console.log(`  ${ACCENT}4${RESET}  Custom       ${DIM}Any OpenAI-compatible API${RESET}`)
   console.log('')
 
   let provider = ''
   while (!provider) {
-    process.stdout.write(`  ${ACCENT}›${RESET} Select provider [1-3]: `)
+    process.stdout.write(`  ${ACCENT}›${RESET} Select provider [1-4]: `)
     const key = (await readLine(false)).trim()
     if (key === '1') provider = 'deepseek'
     else if (key === '2') provider = 'openrouter'
-    else if (key === '3') provider = 'custom'
-    else console.log(`  ${RED}Pick 1, 2 or 3${RESET}`)
+    else if (key === '3') provider = 'evolink'
+    else if (key === '4') provider = 'custom'
+    else console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
   }
   console.log('')
 
@@ -247,6 +255,38 @@ async function runOnboarding() {
       } else console.log(`  ${RED}Pick 1–5${RESET}`)
     }
     providerEnv = { OPENAI_BASE_URL: 'https://openrouter.ai/api/v1', OPENAI_API_KEY: apiKey, OPENAI_MODEL: model }
+  } else if (provider === 'evolink') {
+    console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}Evolink API Key${RESET}`)
+    console.log(`  ${GRAY}Get yours at: evolink.ai/dashboard/keys${RESET}`)
+    console.log('')
+    while (!apiKey) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Paste your API key: `)
+      apiKey = (await readLine(true)).trim()
+      if (!apiKey) console.log(`  ${RED}API key required${RESET}`)
+    }
+    console.log(`  ${GREEN}✔ Key saved${RESET}`)
+    console.log('')
+
+    console.log(`  ${YELLOW}Step 2b/3${RESET} ${BOLD}Choose your model${RESET}`)
+    console.log('')
+    console.log(`  ${ACCENT}1${RESET}  claude-sonnet-4-6          ${DIM}Latest Sonnet · smart${RESET}  ${GREEN}[recommended]${RESET}`)
+    console.log(`  ${ACCENT}2${RESET}  claude-opus-4-6            ${DIM}Latest Opus · most capable${RESET}`)
+    console.log(`  ${ACCENT}3${RESET}  claude-sonnet-4-5-20250929 ${DIM}Sonnet 4.5${RESET}`)
+    console.log(`  ${ACCENT}4${RESET}  claude-haiku-4-5-20251001  ${DIM}Fast · cheap${RESET}`)
+    console.log('')
+    const evolinkModelMap = {
+      '1': 'claude-sonnet-4-6',
+      '2': 'claude-opus-4-6',
+      '3': 'claude-sonnet-4-5-20250929',
+      '4': 'claude-haiku-4-5-20251001',
+    }
+    while (!model) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Select model [1-4]: `)
+      const key = (await readLine(false)).trim()
+      if (evolinkModelMap[key]) model = evolinkModelMap[key]
+      else console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
+    }
+    providerEnv = { ANTHROPIC_BASE_URL: 'https://direct.evolink.ai', ANTHROPIC_API_KEY: apiKey, ANTHROPIC_MODEL: model }
   } else {
     // Custom OpenAI-compatible provider
     console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}Base URL${RESET}`)
@@ -394,6 +434,7 @@ if (existsSync(SETTINGS_PATH)) {
   try {
     const s = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
     if (s?.env?.OPENAI_BASE_URL && s?.env?.OPENAI_MODEL) needsOnboarding = false
+    if (s?.env?.ANTHROPIC_BASE_URL && s?.env?.ANTHROPIC_MODEL) needsOnboarding = false
   } catch {}
 }
 
@@ -411,7 +452,10 @@ if (existsSync(SETTINGS_PATH)) {
   } catch {}
 }
 
-process.env.CLAUDE_CODE_USE_OPENAI = '1'
+// Only use OpenAI-compatible shim for non-Anthropic-native providers
+if (!process.env.ANTHROPIC_BASE_URL) {
+  process.env.CLAUDE_CODE_USE_OPENAI = '1'
+}
 process.env.LOCALCODE_ROOT = join(__dirname, '..')
 
 // Migrate: ensure settings.json has twin-memory permissions for all users

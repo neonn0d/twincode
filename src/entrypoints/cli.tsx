@@ -74,8 +74,10 @@ if (feature('ABLATION_BASELINE') && process.env.CLAUDE_CODE_ABLATION_BASELINE) {
  * Fast-path for --version has zero imports beyond this file.
  */
 async function main(): Promise<void> {
-  // Set defaults for DeepSeek API
-  if (!process.env.CLAUDE_CODE_USE_OPENAI) process.env.CLAUDE_CODE_USE_OPENAI = '1'
+  // Use OpenAI-compat shim only for non-Anthropic-native providers
+  if (!process.env.ANTHROPIC_BASE_URL && !process.env.CLAUDE_CODE_USE_OPENAI) {
+    process.env.CLAUDE_CODE_USE_OPENAI = '1'
+  }
   // NOTE: do NOT set CLAUDE_CODE_SIMPLE=1 here — it disables all hooks
 
   const args = process.argv.slice(2);

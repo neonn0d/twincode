@@ -27,7 +27,12 @@ function getGitInfo(): { branch: string; dirty: boolean } | null {
 }
 
 export function detectProvider(modelOverride?: string): { name: string; model: string; baseUrl: string } {
-  const settings = getSettings_DEPRECATED() || {}
+  if (process.env.ANTHROPIC_BASE_URL) {
+    const baseUrl = process.env.ANTHROPIC_BASE_URL
+    const model = modelOverride || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
+    const name = baseUrl.includes('evolink.ai') ? 'Evolink' : 'Anthropic'
+    return { name, model, baseUrl }
+  }
   const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1'
   const model = modelOverride || process.env.OPENAI_MODEL || 'deepseek-chat'
   const name = baseUrl.includes('deepseek.com') ? 'DeepSeek' : 'OpenAI-compatible'
