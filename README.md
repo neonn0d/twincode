@@ -1,6 +1,6 @@
 # twin
 
-AI coding agent powered by DeepSeek. Runs in your terminal.
+AI coding agent for your terminal. Runs on any provider.
 
 www.twincode.wtf | @neonn0d
 
@@ -8,7 +8,7 @@ www.twincode.wtf | @neonn0d
 
 ## What it is
 
-Fork of Claude Code that runs on the DeepSeek API. Same workflow: file editing, bash, agents, MCP, slash commands. No Anthropic account needed.
+Fork of Claude Code that works with any LLM provider — DeepSeek, StepFun, OpenRouter, Ollama, or any OpenAI-compatible API. Also supports Claude via Evolink. Same workflow: file editing, bash, agents, MCP, slash commands.
 
 Config lives in `~/.twincode/`. All Claude Code docs apply — just translate `~/.claude/` → `~/.twincode/`.
 
@@ -24,22 +24,26 @@ npm run build
 npm link
 ```
 
-Run `twin` anywhere. First launch walks you through setup: DeepSeek API key, model, optional Obsidian vault for memory.
+Run `twin` anywhere. First launch walks you through setup.
 
-**Requirements:** Node.js 18+, DeepSeek API key
+**Requirements:** Node.js 18+
 
 ---
 
-## Models
+## Providers
 
-| model | notes |
+Switch providers anytime with `/switch`.
+
+| provider | notes |
 |---|---|
-| `deepseek-v4-pro` | most capable, recommended |
-| `deepseek-v4-flash` | fast v4 |
-| `deepseek-chat` | fast and cheap |
-| `deepseek-reasoner` | step by step reasoning |
+| **Evolink** | Claude models via Anthropic API — [evolink.ai](https://evolink.ai) |
+| **DeepSeek** | Best for coding, very cheap — [platform.deepseek.com](https://platform.deepseek.com) |
+| **StepFun** | step-3.5-flash, fast — [platform.stepfun.ai](https://platform.stepfun.ai) |
+| **OpenRouter** | 200+ models, one key — [openrouter.ai](https://openrouter.ai) |
+| **Ollama** | Local models, no key needed — [ollama.com](https://ollama.com) |
+| **Custom** | Any OpenAI-compatible API |
 
-Get a key at [platform.deepseek.com](https://platform.deepseek.com).
+Provider keys are saved in `~/.twincode/settings.json` and persist across sessions. Switch between configured providers instantly.
 
 ---
 
@@ -47,14 +51,15 @@ Get a key at [platform.deepseek.com](https://platform.deepseek.com).
 
 | command | what it does |
 |---|---|
+| `/switch` | switch provider or add API keys |
+| `/model` | switch model (shows only models for active provider) |
 | `/skills` | browse, create, edit, delete skills |
 | `/agents` | browse and create custom subagents |
-| `/model` | switch model |
+| `/effort` | set reasoning effort level |
 | `/compact` | compress context |
 | `/plan` | enter planning mode |
 | `/save` | log session to Obsidian |
-| `/key <key>` | update API key |
-| `/logout` | wipe key and reset |
+| `/logout` | wipe keys and reset |
 
 ---
 
@@ -70,17 +75,11 @@ Notes go in `twincode/<project>/` inside your vault. Requires the twin MCP serve
 
 | path | purpose |
 |---|---|
-| `~/.twincode/settings.json` | API keys, model, permissions |
+| `~/.twincode/settings.json` | providers, API keys, model, permissions |
 | `~/.twincode/TWINCODE.md` | personal instructions loaded every session |
 | `~/.twincode/skills/` | global skills |
 | `.twincode/skills/` | project-level skills |
 | `.twincode/agents/` | project-level custom agents |
-
----
-
-## For maintainers
-
-See `PROJECT.md` for architecture details and `TWIN.md` for development patterns.
 
 ---
 
