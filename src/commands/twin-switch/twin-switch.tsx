@@ -8,7 +8,7 @@ import type { LocalJSXCommandOnDone } from '../../types/command.js'
 
 const SETTINGS_PATH = join(homedir(), '.twincode', 'settings.json')
 
-type ProviderType = 'evolink' | 'deepseek' | 'custom'
+type ProviderType = 'evolink' | 'deepseek' | 'stepfun' | 'openrouter' | 'ollama' | 'custom'
 
 type SavedProvider = {
   apiKey: string
@@ -24,10 +24,13 @@ type Settings = {
   [key: string]: unknown
 }
 
-const PROVIDERS: { id: ProviderType; label: string; hint: string; defaultModel: string }[] = [
-  { id: 'evolink',  label: 'Evolink',  hint: 'Claude models · Anthropic API',    defaultModel: 'claude-sonnet-4-6' },
-  { id: 'deepseek', label: 'DeepSeek', hint: 'Best for coding · cheap',           defaultModel: 'deepseek-chat' },
-  { id: 'custom',   label: 'Custom',   hint: 'Any OpenAI-compatible API',         defaultModel: '' },
+const PROVIDERS: { id: ProviderType; label: string; hint: string; defaultModel: string; baseUrl: string; noKey?: boolean }[] = [
+  { id: 'evolink',    label: 'Evolink',     hint: 'Claude models · Anthropic API',    defaultModel: 'claude-sonnet-4-6',  baseUrl: 'https://direct.evolink.ai' },
+  { id: 'deepseek',   label: 'DeepSeek',    hint: 'Best for coding · cheap',           defaultModel: 'deepseek-chat',       baseUrl: 'https://api.deepseek.com/v1' },
+  { id: 'stepfun',    label: 'StepFun',     hint: 'step-3.5-flash · fast',             defaultModel: 'step-3.5-flash',      baseUrl: 'https://api.stepfun.ai/step_plan/v1' },
+  { id: 'openrouter', label: 'OpenRouter',  hint: '200+ models · one key',             defaultModel: 'openai/gpt-4o-mini',  baseUrl: 'https://openrouter.ai/api/v1' },
+  { id: 'ollama',     label: 'Ollama',      hint: 'Local models · no key needed',      defaultModel: 'llama3.2',            baseUrl: 'http://localhost:11434/v1', noKey: true },
+  { id: 'custom',     label: 'Custom',      hint: 'Any OpenAI-compatible API',         defaultModel: '',                    baseUrl: '' },
 ]
 
 function persist(s: Settings) {
@@ -63,19 +66,22 @@ function loadSettings(): Settings {
 function applyProvider(settings: Settings, id: ProviderType, p: SavedProvider): Settings {
   const s = { ...settings }
   s.activeProvider = id
-  const model = p.model || PROVIDERS.find(x => x.id === id)?.defaultModel || ''
+  const preset = PROVIDERS.find(x => x.id === id)
+  const model = p.model || preset?.defaultModel || ''
   s.model = model
   const env = { ...(s.env ?? {}) } as Record<string, string>
   if (id === 'evolink') {
     delete env.OPENAI_BASE_URL; delete env.OPENAI_API_KEY; delete env.OPENAI_MODEL
+    delete env.CLAUDE_CODE_USE_OPENAI
     env.ANTHROPIC_BASE_URL = 'https://direct.evolink.ai'
     env.ANTHROPIC_API_KEY = p.apiKey
     env.ANTHROPIC_MODEL = model
   } else {
     delete env.ANTHROPIC_BASE_URL; delete env.ANTHROPIC_API_KEY; delete env.ANTHROPIC_MODEL
-    env.OPENAI_BASE_URL = p.baseUrl || (id === 'deepseek' ? 'https://api.deepseek.com/v1' : '')
+    env.OPENAI_BASE_URL = p.baseUrl || preset?.baseUrl || ''
     env.OPENAI_API_KEY = p.apiKey
     env.OPENAI_MODEL = model
+    env.CLAUDE_CODE_USE_OPENAI = '1'
   }
   s.env = env
   return s
@@ -105,10 +111,18 @@ function SwitchUI({ onDone }: { onDone: (msg: string) => void }) {
         const p = selectedProvider
         if (p.id === 'custom' && !sp.custom) {
           setBuf(''); setError(''); setScreen('custom-url')
+        } else if (p.noKey && !sp[p.id]) {
+          // No key needed (Ollama) — activate directly with empty key
+          const saved: SavedProvider = { apiKey: '' }
+          const newSp = { ...sp, [p.id]: saved }
+          const updated = applyProvider({ ...settings, savedProviders: newSp }, p.id, saved)
+          persist(updated)
+          setSettings(updated)
+          setStatus(`Active: ${p.label}`)
         } else if (!sp[p.id]) {
           setBuf(''); setError(''); setScreen('enter-key')
         } else {
-          // Already has key — activate immediately
+          // Already configured — activate immediately
           const updated = applyProvider(settings, p.id, sp[p.id]!)
           persist(updated)
           setSettings(updated)
@@ -143,7 +157,7 @@ function SwitchUI({ onDone }: { onDone: (msg: string) => void }) {
       if (key.return) {
         const v = buf.trim()
         const id = selectedProvider.id
-        if (!v && id !== 'custom') { setError('API key required'); return }
+        if (!v && id !== 'custom' && !selectedProvider.noKey) { setError('API key required'); return }
         setError('')
         const p: SavedProvider = { apiKey: v }
         if (id === 'custom') { p.baseUrl = customUrl; p.model = customModel }
@@ -226,12 +240,17 @@ function SwitchUI({ onDone }: { onDone: (msg: string) => void }) {
 
   // enter-key
   const p = selectedProvider
+  const keyHint: Record<string, string> = {
+    evolink:    'evolink.ai/dashboard/keys',
+    deepseek:   'platform.deepseek.com',
+    stepfun:    'platform.stepfun.ai',
+    openrouter: 'openrouter.ai/keys',
+    ollama:     'No key needed — just press Enter',
+  }
   return (
     <Box flexDirection="column" paddingTop={1} paddingLeft={2}>
       <Text bold>{p.label} — API key</Text>
-      <Text dimColor>
-        {p.id === 'evolink' ? 'evolink.ai/dashboard/keys' : p.id === 'deepseek' ? 'platform.deepseek.com' : 'Leave blank for local models'}
-      </Text>
+      <Text dimColor>{keyHint[p.id] ?? 'Enter your API key'}</Text>
       <Box marginTop={1}><Text>› </Text><Text>{'●'.repeat(buf.length)}</Text><Text color="cyan">█</Text></Box>
       {error && <Box marginTop={1}><Text color="red">{error}</Text></Box>}
       <Box marginTop={1}><Text dimColor>Enter confirm · Esc back</Text></Box>

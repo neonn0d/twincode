@@ -1584,6 +1584,10 @@ class OpenAIShimMessages {
       stream: params.stream ?? false,
       store: false,
     }
+    // Emit reasoning_effort for chat_completions when set via /effort or model default.
+    if (request.reasoning) {
+      body.reasoning_effort = request.reasoning.effort
+    }
     // Convert max_tokens to max_completion_tokens for OpenAI API compatibility.
     // Azure OpenAI requires max_completion_tokens and does not accept max_tokens.
     // Ensure max_tokens is a valid positive number before using it.

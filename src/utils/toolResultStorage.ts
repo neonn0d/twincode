@@ -17,6 +17,7 @@ import { logEvent } from '../services/analytics/index.js'
 import { sanitizeToolNameForAnalytics } from '../services/analytics/metadata.js'
 import type { Message } from '../types/message.js'
 import { logForDebugging } from './debug.js'
+import { isEnvTruthy } from './envUtils.js'
 import { getErrnoCode, toError } from './errors.js'
 import { formatFileSize } from './format.js'
 import { logError } from './log.js'
@@ -448,11 +449,12 @@ export function provisionContentReplacementState(
   initialMessages?: Message[],
   initialContentReplacements?: ContentReplacementRecord[],
 ): ContentReplacementState | undefined {
-  const enabled = getFeatureValue_CACHED_MAY_BE_STALE(
-    'tengu_hawthorn_steeple',
-    false,
-  )
-  if (!enabled) return undefined
+  // Upstream gates this on the GrowthBook flag `tengu_hawthorn_steeple`,
+  // which always resolves to false in this fork because telemetry is disabled.
+  // Without enforcement, raw tool result payloads accumulate in memory across
+  // long sessions and can reach multiple GB. Enable by default; opt out via
+  // env var if it causes issues with prompt cache or session resume.
+  if (isEnvTruthy(process.env.TWINCODE_DISABLE_TOOL_RESULT_BUDGET)) return undefined
   if (initialMessages) {
     return reconstructContentReplacementState(
       initialMessages,

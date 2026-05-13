@@ -35,7 +35,11 @@ export function detectProvider(modelOverride?: string): { name: string; model: s
   }
   const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1'
   const model = modelOverride || process.env.OPENAI_MODEL || 'deepseek-chat'
-  const name = baseUrl.includes('deepseek.com') ? 'DeepSeek' : 'OpenAI-compatible'
+  const name = baseUrl.includes('deepseek.com') ? 'DeepSeek'
+    : baseUrl.includes('stepfun.ai') ? 'StepFun'
+    : baseUrl.includes('openrouter.ai') ? 'OpenRouter'
+    : baseUrl.includes('localhost:11434') || baseUrl.includes('localhost:11435') ? 'Ollama'
+    : 'OpenAI-compatible'
   return { name, model, baseUrl }
 }
 

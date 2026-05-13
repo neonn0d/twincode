@@ -422,6 +422,45 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
     return [defaultOption]
   }
 
+  // StepFun models
+  const openaiBaseUrl = process.env.OPENAI_BASE_URL ?? ''
+  if (openaiBaseUrl.includes('stepfun.ai')) {
+    return [
+      { value: 'step-3.5-flash', label: 'step-3.5-flash', description: 'Fast · multimodal' },
+      { value: 'step-3.6',       label: 'step-3.6',       description: 'Most capable · vision' },
+      { value: 'step-2-mini',    label: 'step-2-mini',    description: 'Lightweight · cheap' },
+      { value: 'step-1-8k',      label: 'step-1-8k',      description: '8K context' },
+      { value: 'step-1-32k',     label: 'step-1-32k',     description: '32K context' },
+      { value: 'step-1-128k',    label: 'step-1-128k',    description: '128K context' },
+    ]
+  }
+
+  // DeepSeek models
+  if (openaiBaseUrl.includes('deepseek.com')) {
+    return [
+      { value: 'deepseek-chat',     label: 'deepseek-chat',     description: 'DeepSeek V3 · best for coding' },
+      { value: 'deepseek-reasoner', label: 'deepseek-reasoner', description: 'DeepSeek R1 · thinks before answering' },
+    ]
+  }
+
+  // OpenRouter — too many models to list, just show current + allow custom
+  if (openaiBaseUrl.includes('openrouter.ai')) {
+    const current = process.env.OPENAI_MODEL
+    const opts: ModelOption[] = [
+      { value: 'openai/gpt-4o-mini',                    label: 'GPT-4o mini',          description: 'Fast · cheap' },
+      { value: 'openai/gpt-4o',                         label: 'GPT-4o',               description: 'OpenAI flagship' },
+      { value: 'anthropic/claude-sonnet-4-6',           label: 'Claude Sonnet 4.6',    description: 'Best Anthropic model' },
+      { value: 'meta-llama/llama-4-maverick',           label: 'Llama 4 Maverick',     description: 'Meta · free tier available' },
+      { value: 'google/gemini-2.5-flash',               label: 'Gemini 2.5 Flash',     description: 'Google · fast' },
+      { value: 'mistralai/mistral-small',               label: 'Mistral Small',        description: 'Mistral · cheap' },
+      { value: 'deepseek/deepseek-chat',                label: 'DeepSeek Chat',        description: 'Via OpenRouter' },
+    ]
+    if (current && !opts.some(o => o.value === current)) {
+      opts.push({ value: current, label: current, description: 'Custom model' })
+    }
+    return opts
+  }
+
   if (process.env.USER_TYPE === 'ant') {
     // Build options from antModels config
     const antModelOptions: ModelOption[] = getAntModels().map(m => ({
