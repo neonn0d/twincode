@@ -301,7 +301,24 @@ async function runOnboarding() {
     console.log(`  ${GREEN}✔ Key saved${RESET}`)
     console.log('')
 
-    console.log(`  ${YELLOW}Step 2b/3${RESET} ${BOLD}Choose your model${RESET}`)
+    // StepFun has two endpoints: /step_plan/v1 for monthly subscriptions,
+    // /v1 for pay-as-you-go API credits — the wrong one 402s with quota_exceeded
+    console.log(`  ${YELLOW}Step 2b/3${RESET} ${BOLD}How do you pay for StepFun?${RESET}`)
+    console.log('')
+    console.log(`  ${ACCENT}1${RESET}  Monthly coding plan   ${DIM}subscription${RESET}         ${GREEN}[most common]${RESET}`)
+    console.log(`  ${ACCENT}2${RESET}  API credits           ${DIM}pay-as-you-go${RESET}`)
+    console.log('')
+    let stepfunBaseUrl = ''
+    while (!stepfunBaseUrl) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Select billing [1-2]: `)
+      const key = (await readLine(false)).trim()
+      if (key === '1') stepfunBaseUrl = 'https://api.stepfun.ai/step_plan/v1'
+      else if (key === '2') stepfunBaseUrl = 'https://api.stepfun.ai/v1'
+      else console.log(`  ${RED}Pick 1 or 2${RESET}`)
+    }
+    console.log('')
+
+    console.log(`  ${YELLOW}Step 2c/3${RESET} ${BOLD}Choose your model${RESET}`)
     console.log('')
     // only tool-calling models — twin's agent loop needs tools
     console.log(`  ${ACCENT}1${RESET}  step-3.7-flash        ${DIM}Latest · fast${RESET}        ${GREEN}[recommended]${RESET}`)
@@ -319,7 +336,7 @@ async function runOnboarding() {
       if (stepfunModelMap[key]) model = stepfunModelMap[key]
       else console.log(`  ${RED}Pick 1, 2 or 3${RESET}`)
     }
-    providerEnv = { OPENAI_BASE_URL: 'https://api.stepfun.ai/v1', OPENAI_API_KEY: apiKey, OPENAI_MODEL: model }
+    providerEnv = { OPENAI_BASE_URL: stepfunBaseUrl, OPENAI_API_KEY: apiKey, OPENAI_MODEL: model }
   } else {
     // Custom OpenAI-compatible provider
     console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}Base URL${RESET}`)
