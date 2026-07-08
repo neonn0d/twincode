@@ -19,10 +19,11 @@ Config lives in `~/.twincode/`. All Claude Code docs apply — just translate `~
 ```bash
 git clone https://github.com/neonn0d/twincode
 cd twincode
-npm install
-npm run build
-npm link
+./install.sh
 ```
+
+The installer checks Node 20+, downloads bun if missing (no sudo needed),
+builds, and puts `twin` on your PATH. Re-run it after `git pull` to rebuild.
 
 Run `twin` anywhere. First launch walks you through setup.
 

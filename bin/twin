@@ -176,18 +176,20 @@ async function runOnboarding() {
   console.log(`  ${ACCENT}1${RESET}  DeepSeek     ${DIM}Best for coding · 128K · ~$2/mo${RESET}  ${GREEN}platform.deepseek.com${RESET}`)
   console.log(`  ${ACCENT}2${RESET}  OpenRouter   ${DIM}Any model · one API key${RESET}          ${GREEN}openrouter.ai${RESET}`)
   console.log(`  ${ACCENT}3${RESET}  Evolink      ${DIM}Claude models · Anthropic API${RESET}    ${GREEN}evolink.ai${RESET}`)
-  console.log(`  ${ACCENT}4${RESET}  Custom       ${DIM}Any OpenAI-compatible API${RESET}`)
+  console.log(`  ${ACCENT}4${RESET}  StepFun      ${DIM}step-3.5-flash · fast${RESET}            ${GREEN}platform.stepfun.ai${RESET}`)
+  console.log(`  ${ACCENT}5${RESET}  Custom       ${DIM}Any OpenAI-compatible API${RESET}`)
   console.log('')
 
   let provider = ''
   while (!provider) {
-    process.stdout.write(`  ${ACCENT}›${RESET} Select provider [1-4]: `)
+    process.stdout.write(`  ${ACCENT}›${RESET} Select provider [1-5]: `)
     const key = (await readLine(false)).trim()
     if (key === '1') provider = 'deepseek'
     else if (key === '2') provider = 'openrouter'
     else if (key === '3') provider = 'evolink'
-    else if (key === '4') provider = 'custom'
-    else console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
+    else if (key === '4') provider = 'stepfun'
+    else if (key === '5') provider = 'custom'
+    else console.log(`  ${RED}Pick 1–5${RESET}`)
   }
   console.log('')
 
@@ -287,6 +289,38 @@ async function runOnboarding() {
       else console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
     }
     providerEnv = { ANTHROPIC_BASE_URL: 'https://direct.evolink.ai', ANTHROPIC_API_KEY: apiKey, ANTHROPIC_MODEL: model }
+  } else if (provider === 'stepfun') {
+    console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}StepFun API Key${RESET}`)
+    console.log(`  ${GRAY}Get yours at: platform.stepfun.ai${RESET}`)
+    console.log('')
+    while (!apiKey) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Paste your API key: `)
+      apiKey = (await readLine(true)).trim()
+      if (!apiKey) console.log(`  ${RED}API key required${RESET}`)
+    }
+    console.log(`  ${GREEN}✔ Key saved${RESET}`)
+    console.log('')
+
+    console.log(`  ${YELLOW}Step 2b/3${RESET} ${BOLD}Choose your model${RESET}`)
+    console.log('')
+    console.log(`  ${ACCENT}1${RESET}  step-3.5-flash   ${DIM}Fast · multimodal${RESET}      ${GREEN}[recommended]${RESET}`)
+    console.log(`  ${ACCENT}2${RESET}  step-3.6         ${DIM}Most capable · vision${RESET}`)
+    console.log(`  ${ACCENT}3${RESET}  step-2-mini      ${DIM}Lightweight · cheap${RESET}`)
+    console.log(`  ${ACCENT}4${RESET}  step-1-128k      ${DIM}128K context${RESET}`)
+    console.log('')
+    const stepfunModelMap = {
+      '1': 'step-3.5-flash',
+      '2': 'step-3.6',
+      '3': 'step-2-mini',
+      '4': 'step-1-128k',
+    }
+    while (!model) {
+      process.stdout.write(`  ${ACCENT}›${RESET} Select model [1-4]: `)
+      const key = (await readLine(false)).trim()
+      if (stepfunModelMap[key]) model = stepfunModelMap[key]
+      else console.log(`  ${RED}Pick 1, 2, 3 or 4${RESET}`)
+    }
+    providerEnv = { OPENAI_BASE_URL: 'https://api.stepfun.ai/step_plan/v1', OPENAI_API_KEY: apiKey, OPENAI_MODEL: model }
   } else {
     // Custom OpenAI-compatible provider
     console.log(`  ${YELLOW}Step 2a/3${RESET} ${BOLD}Base URL${RESET}`)
