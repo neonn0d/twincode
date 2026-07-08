@@ -72,6 +72,17 @@ Notes go in `twincode/<project>/` inside your vault. Requires the twin MCP serve
 
 ---
 
+## Image paste over SSH
+
+Twin has built-in support for [imagessh](https://github.com/neonn0d/imagessh):
+when you run twin on a remote server and hit Ctrl+V, it first tries the local
+clipboard tools, then automatically reads your **local computer's** clipboard
+through the imagessh tunnel (`127.0.0.1:8377`). Set up imagessh on your
+computer (one command: `./setup.sh`), ssh in, and image paste just works — no
+extra setup on the server.
+
+---
+
 ## Config
 
 | path | purpose |

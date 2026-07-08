@@ -17,6 +17,7 @@ import {
   type ImageDimensions,
   maybeResizeAndDownsampleImageBuffer,
 } from './imageResizer.js'
+import { getImagesshClipboardImage } from './imagesshClipboard.js'
 import { logError } from './log.js'
 
 // Native NSPasteboard reader. GrowthBook gate tengu_collage_kaleidoscope is
@@ -112,6 +113,48 @@ export type ImageWithDimensions = {
   base64: string
   mediaType: string
   dimensions?: ImageDimensions
+}
+
+/**
+ * Over ssh the clipboard lives on the user's local computer, so the native
+ * commands above find nothing. If an imagessh tunnel is up (ssh -R to a
+ * clipboard server on the user's machine), read the image through it.
+ */
+async function getImageFromImagesshTunnel(): Promise<ImageWithDimensions | null> {
+  try {
+    const remote = await getImagesshClipboardImage(
+      LINUX_CLIPBOARD_IMAGE_MIME_TYPES,
+    )
+    if (!remote) {
+      return null
+    }
+    let imageBuffer = remote.buffer
+
+    // BMP is not supported by the API — convert to PNG via Sharp.
+    if (
+      imageBuffer.length >= 2 &&
+      imageBuffer[0] === 0x42 &&
+      imageBuffer[1] === 0x4d
+    ) {
+      const sharp = await getImageProcessor()
+      imageBuffer = await sharp(imageBuffer).png().toBuffer()
+    }
+
+    const resized = await maybeResizeAndDownsampleImageBuffer(
+      imageBuffer,
+      imageBuffer.length,
+      'png',
+    )
+    const base64Image = resized.buffer.toString('base64')
+    return {
+      base64: base64Image,
+      mediaType: detectImageFormatFromBase64(base64Image),
+      dimensions: resized.dimensions,
+    }
+  } catch (e) {
+    logError(e as Error)
+    return null
+  }
 }
 
 /**
@@ -215,7 +258,7 @@ export async function getImageFromClipboard(): Promise<ImageWithDimensions | nul
       reject: false,
     })
     if (checkResult.exitCode !== 0) {
-      return null
+      return await getImageFromImagesshTunnel()
     }
 
     // Save the image
@@ -224,7 +267,7 @@ export async function getImageFromClipboard(): Promise<ImageWithDimensions | nul
       reject: false,
     })
     if (saveResult.exitCode !== 0) {
-      return null
+      return await getImageFromImagesshTunnel()
     }
 
     // Read the image and convert to base64
@@ -261,7 +304,7 @@ export async function getImageFromClipboard(): Promise<ImageWithDimensions | nul
       dimensions: resized.dimensions,
     }
   } catch {
-    return null
+    return await getImageFromImagesshTunnel()
   }
 }
 
