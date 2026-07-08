@@ -39,7 +39,7 @@ Switch providers anytime with `/switch`.
 |---|---|
 | **Evolink** | Claude models via Anthropic API — [evolink.ai](https://evolink.ai) |
 | **DeepSeek** | Best for coding, very cheap — [platform.deepseek.com](https://platform.deepseek.com) |
-| **StepFun** | step-3.5-flash, fast — [platform.stepfun.ai](https://platform.stepfun.ai) |
+| **StepFun** | step-3.7-flash, fast — [platform.stepfun.ai](https://platform.stepfun.ai) |
 | **OpenRouter** | 200+ models, one key — [openrouter.ai](https://openrouter.ai) |
 | **Ollama** | Local models, no key needed — [ollama.com](https://ollama.com) |
 | **Custom** | Any OpenAI-compatible API |

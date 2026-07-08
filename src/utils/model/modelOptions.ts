@@ -425,13 +425,13 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
   // StepFun models
   const openaiBaseUrl = process.env.OPENAI_BASE_URL ?? ''
   if (openaiBaseUrl.includes('stepfun.ai')) {
+    // Only models with tool-calling support — twin's agent loop needs tools.
+    // Per https://platform.stepfun.ai/docs: step-3.7-flash, step-3.5-flash,
+    // step-3.5-flash-2603 support Toolcall; step-3.6/step-2/step-1 do not.
     return [
-      { value: 'step-3.5-flash', label: 'step-3.5-flash', description: 'Fast · multimodal' },
-      { value: 'step-3.6',       label: 'step-3.6',       description: 'Most capable · vision' },
-      { value: 'step-2-mini',    label: 'step-2-mini',    description: 'Lightweight · cheap' },
-      { value: 'step-1-8k',      label: 'step-1-8k',      description: '8K context' },
-      { value: 'step-1-32k',     label: 'step-1-32k',     description: '32K context' },
-      { value: 'step-1-128k',    label: 'step-1-128k',    description: '128K context' },
+      { value: 'step-3.7-flash',      label: 'step-3.7-flash',      description: 'Latest · fast · tool calling' },
+      { value: 'step-3.5-flash',      label: 'step-3.5-flash',      description: 'Fast · multimodal · tool calling' },
+      { value: 'step-3.5-flash-2603', label: 'step-3.5-flash-2603', description: 'Pinned snapshot · tool calling' },
     ]
   }
 

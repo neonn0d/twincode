@@ -27,7 +27,7 @@ type Settings = {
 const PROVIDERS: { id: ProviderType; label: string; hint: string; defaultModel: string; baseUrl: string; noKey?: boolean }[] = [
   { id: 'evolink',    label: 'Evolink',     hint: 'Claude models · Anthropic API',    defaultModel: 'claude-sonnet-4-6',  baseUrl: 'https://direct.evolink.ai' },
   { id: 'deepseek',   label: 'DeepSeek',    hint: 'Best for coding · cheap',           defaultModel: 'deepseek-chat',       baseUrl: 'https://api.deepseek.com/v1' },
-  { id: 'stepfun',    label: 'StepFun',     hint: 'step-3.5-flash · fast',             defaultModel: 'step-3.5-flash',      baseUrl: 'https://api.stepfun.ai/step_plan/v1' },
+  { id: 'stepfun',    label: 'StepFun',     hint: 'step-3.7-flash · fast',             defaultModel: 'step-3.7-flash',      baseUrl: 'https://api.stepfun.ai/v1' },
   { id: 'openrouter', label: 'OpenRouter',  hint: '200+ models · one key',             defaultModel: 'openai/gpt-4o-mini',  baseUrl: 'https://openrouter.ai/api/v1' },
   { id: 'ollama',     label: 'Ollama',      hint: 'Local models · no key needed',      defaultModel: 'llama3.2',            baseUrl: 'http://localhost:11434/v1', noKey: true },
   { id: 'custom',     label: 'Custom',      hint: 'Any OpenAI-compatible API',         defaultModel: '',                    baseUrl: '' },
