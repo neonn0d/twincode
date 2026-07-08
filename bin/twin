@@ -438,7 +438,19 @@ if (existsSync(SETTINGS_PATH)) {
   } catch {}
 }
 
-if (needsOnboarding) await runOnboarding()
+// --version/--help must work without provider config, and onboarding can only
+// run where raw-mode input exists (not in pipes, ssh exec, CI)
+const argvFlags = process.argv.slice(2)
+const skipOnboarding = ['--version', '-v', '--help', '-h'].some(f => argvFlags.includes(f))
+
+if (needsOnboarding && !skipOnboarding) {
+  if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== 'function') {
+    console.error('twin: no provider configured yet, and first-time setup needs an interactive terminal.')
+    console.error('twin: run `twin` directly in a terminal to choose a provider.')
+    process.exit(1)
+  }
+  await runOnboarding()
+}
 
 // Apply provider env from settings before the app starts
 if (existsSync(SETTINGS_PATH)) {
