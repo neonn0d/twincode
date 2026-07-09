@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # twincode installer — sets up everything `twin` needs:
 #   node 20+ check, bun (downloaded if missing, no sudo needed),
-#   npm install, build, and a `twin` command on your PATH.
+#   bun install, build, and a `twin` command on your PATH.
 #
 # Usage:  ./install.sh
 # Safe to re-run any time (e.g. after `git pull` to rebuild).
@@ -84,7 +84,9 @@ export PATH="$(dirname "$BUN"):$PATH"
 # ---- dependencies + build ---------------------------------------------------
 cd "$REPO_DIR"
 echo "installing dependencies…"
-npm install --no-fund --no-audit --loglevel=error
+# Use bun (not npm) so the committed bun.lock is honoured. npm ignores it and
+# resolves @vscode/ripgrep to 1.18.0, which ships no rg binary → broken search.
+"$BUN" install
 ok "dependencies installed"
 
 echo "building…"
