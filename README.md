@@ -27,7 +27,7 @@ builds, and puts `twin` on your PATH. Re-run it after `git pull` to rebuild.
 
 Run `twin` anywhere. First launch walks you through setup.
 
-**Requirements:** Node.js 18+
+**Requirements:** Node.js 20+
 
 ---
 
