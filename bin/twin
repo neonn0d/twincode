@@ -71,7 +71,10 @@ if (process.argv[2] === 'update') {
       console.error(`${RED}twin: bun not found${RESET} — reinstall with:\n  curl -fsSL https://twincode.wtf/install.sh | bash`)
       process.exit(1)
     }
-    execSync('git pull --ff-only', { cwd: root, stdio: 'inherit' })
+    // Hard-reset to upstream rather than `git pull`: this is a managed
+    // install dir, not a dev checkout, and `bun install` rewrites bun.lock —
+    // so a plain pull would refuse to fast-forward over "local changes".
+    execSync('git reset --hard @{u}', { cwd: root, stdio: 'inherit' })
     console.log(`${DIM}installing dependencies…${RESET}`)
     execSync(`"${bun}" install`, { cwd: root, stdio: 'inherit' })
     console.log(`${DIM}building…${RESET}`)
