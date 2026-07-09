@@ -37,6 +37,54 @@ const GRAY = rgb(100, 110, 120)
 const RED = rgb(255, 100, 100)
 const DIM_GRAY = `${ESC}2m`
 
+// ── `twin update` — pull latest, rebuild, relink ─────────────────────
+// `twin update`         fetch, and if behind, pull + rebuild
+// `twin update --check` just report whether an update is available
+if (process.argv[2] === 'update') {
+  const root = join(__dirname, '..')
+  const checkOnly = process.argv.includes('--check')
+  const git = (args) => execSync(`git ${args}`, { cwd: root, encoding: 'utf8' }).trim()
+  const findBun = () => {
+    try { execSync('command -v bun', { stdio: 'ignore' }); return 'bun' } catch {}
+    const local = join(homedir(), '.bun', 'bin', 'bun')
+    return existsSync(local) ? local : null
+  }
+  try {
+    if (!existsSync(join(root, '.git'))) {
+      console.error(`${RED}twin: not a git install${RESET} — reinstall with:\n  curl -fsSL https://twincode.wtf/install.sh | bash`)
+      process.exit(1)
+    }
+    console.log(`${DIM}checking for updates…${RESET}`)
+    git('fetch --quiet origin')
+    const behind = git('rev-list --count HEAD..@{u}')
+    if (behind === '0') {
+      console.log(`${GREEN}✓${RESET} twin is up to date.`)
+      process.exit(0)
+    }
+    console.log(`${YELLOW}${behind}${RESET} update(s) available.`)
+    if (checkOnly) {
+      console.log(`${DIM}run ${RESET}${BOLD}twin update${RESET}${DIM} to install.${RESET}`)
+      process.exit(0)
+    }
+    const bun = findBun()
+    if (!bun) {
+      console.error(`${RED}twin: bun not found${RESET} — reinstall with:\n  curl -fsSL https://twincode.wtf/install.sh | bash`)
+      process.exit(1)
+    }
+    execSync('git pull --ff-only', { cwd: root, stdio: 'inherit' })
+    console.log(`${DIM}installing dependencies…${RESET}`)
+    execSync(`"${bun}" install`, { cwd: root, stdio: 'inherit' })
+    console.log(`${DIM}building…${RESET}`)
+    execSync(`"${bun}" run build`, { cwd: root, stdio: 'inherit' })
+    console.log(`${GREEN}✓ twin updated.${RESET} Restart twin to use the new version.`)
+    process.exit(0)
+  } catch (e) {
+    console.error(`${RED}twin update failed:${RESET} ${e.message || e}`)
+    console.error(`Reinstall with: curl -fsSL https://twincode.wtf/install.sh | bash`)
+    process.exit(1)
+  }
+}
+
 // Read a line in raw mode — masked (shows *) or plain (shows chars)
 function readLine(masked = false) {
   return new Promise(resolve => {

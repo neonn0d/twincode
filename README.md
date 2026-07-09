@@ -17,17 +17,32 @@ Config lives in `~/.twincode/`. All Claude Code docs apply — just translate `~
 ## Install
 
 ```bash
+curl -fsSL https://twincode.wtf/install.sh | bash
+```
+
+Or clone and build yourself:
+
+```bash
 git clone https://github.com/neonn0d/twincode
 cd twincode
 ./install.sh
 ```
 
 The installer checks Node 20+, downloads bun if missing (no sudo needed),
-builds, and puts `twin` on your PATH. Re-run it after `git pull` to rebuild.
+builds, and puts `twin` on your PATH.
 
 Run `twin` anywhere. First launch walks you through setup.
 
 **Requirements:** Node.js 20+
+
+### Updating
+
+```bash
+twin update          # pull latest, rebuild, relink
+twin update --check  # just check if an update is available
+```
+
+(Re-running the installer updates too.)
 
 ---
 
